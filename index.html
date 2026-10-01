@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Salvage Kings · Wreckline Studios</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Salvage Kings: wasteland vehicle combat. Build your rig, steal their armor, ride together. Free to play in your browser on Xbox and PC.">
+<meta property="og:title" content="Salvage Kings">
+<meta property="og:description" content="Wasteland vehicle combat. Wave Mode free. Chapter 1: Escape.">
+<meta name="theme-color" content="#0d0906">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230d0906'/%3E%3Ctext x='32' y='45' font-size='34' text-anchor='middle' font-family='Impact,sans-serif' fill='%23e0762c'%3ESK%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --ink:#f3e6cf; --dim:#bfae93; --rust:#e0762c; --rust-deep:#9c3f14; --teal:#4cc4b8;
+  --panel:rgba(18,12,8,.78); --panel-solid:#17100b; --line:rgba(243,230,207,.16); --danger:#ff4d2e; --good:#8fd14f;
+  --display:'Teko','Oswald',Impact,sans-serif; --body:'Barlow Semi Condensed','Arial Narrow',sans-serif;
+}
+[hidden]{display:none!important}
+#padstat{position:fixed;left:50%;bottom:max(10px,2vh);transform:translateX(-50%);z-index:40;font:600 13px/1.3 var(--body);letter-spacing:.06em;padding:5px 12px;background:rgba(18,12,8,.85);color:var(--dim);border:1px solid var(--line);pointer-events:none;max-width:calc(100vw - 32px);text-align:center}
+#padstat.ok{color:#8fd14f;border-color:#3f6a26}
+#padstat.bad{color:#ffb0a0;border-color:#a3261a}
+body.incombat #padstat.ok{display:none}
+html,body{height:100%;margin:0;background:#0d0906;color:var(--ink);font-family:var(--body);overflow:hidden;user-select:none;-webkit-user-select:none}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:none}
+.hud{position:fixed;inset:0;pointer-events:none;font-family:var(--body)}
+.label{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);font-weight:600}
+.big{font-family:var(--display);line-height:.85}
+
+/* loading + title */
+#loading{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 60%,#3a1e0e 0%,#0d0906 70%);z-index:30}
+#loading .wrap{display:flex;flex-direction:column;align-items:center;gap:14px;padding-inline:16px;text-align:center}
+#loading h1{margin:0;font-family:var(--display);font-weight:600;font-size:clamp(64px,12vw,150px);letter-spacing:.02em;line-height:.8;color:var(--ink);text-shadow:0 4px 0 var(--rust-deep)}
+#loading h1 span{color:var(--rust)}
+#loadbar{width:min(420px,80vw);height:6px;background:rgba(255,255,255,.1)}
+#loadbar i{display:block;height:100%;width:0;background:var(--rust);transition:width .2s}
+#loadmsg{font-size:15px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
+#startbtn{pointer-events:auto;font-family:var(--display);font-size:34px;letter-spacing:.08em;padding:10px 34px 4px;background:var(--rust);color:#1a0d05;border:0;cursor:pointer;margin-top:6px}
+#startbtn:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+
+/* garage */
+#garage{position:fixed;left:max(16px,3vw);top:max(16px,3vh);max-height:calc(100% - 32px);overflow-y:auto;width:min(420px,calc(100vw - 32px));display:flex;flex-direction:column;gap:9px;pointer-events:auto;z-index:10;scrollbar-width:none}
+#gkeys{position:fixed;right:max(16px,3vw);bottom:max(16px,3vh);text-align:right;background:var(--panel);padding:8px 12px}
+#garage header .big{font-size:54px;font-weight:600;color:var(--ink)}
+#garage header .big span{color:var(--rust)}
+.rows{display:flex;flex-direction:column;gap:6px}
+.row{display:grid;grid-template-columns:92px 36px 1fr 36px;align-items:center;background:var(--panel);border:1px solid transparent;padding:4px 8px;gap:6px}
+.row.sel{border-color:var(--rust);background:rgba(60,26,10,.85)}
+.row .val{font-family:var(--display);font-size:27px;line-height:1;text-align:center;padding-top:5px;letter-spacing:.03em}
+.row .sub{font-size:13px;color:var(--dim);text-align:center;margin-top:-2px}
+.arrow{pointer-events:auto;background:none;border:1px solid var(--line);color:var(--ink);height:44px;font-size:18px;cursor:pointer;font-family:var(--body)}
+.arrow:hover{border-color:var(--rust);color:var(--rust)}
+.arrow:focus-visible{outline:2px solid var(--rust)}
+.stats{background:var(--panel);padding:10px 14px;display:grid;grid-template-columns:92px 1fr 34px;gap:5px 10px;align-items:center}
+.stats .bar{height:8px;background:rgba(255,255,255,.08);position:relative}
+.stats .bar i{position:absolute;inset:0 auto 0 0;background:var(--rust);transition:width .25s}
+.stats .n{font-variant-numeric:tabular-nums;font-weight:700;text-align:right;font-size:14px}
+.stats .label{font-size:11px}
+#go{pointer-events:auto;font-family:var(--display);font-size:30px;letter-spacing:.06em;padding:10px 16px 4px;background:var(--rust);color:#1a0d05;border:0;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center}
+#go:focus-visible{outline:3px solid var(--ink)}
+.pad{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:11px;font-weight:700;font-size:13px;color:#fff;padding:0 4px;font-family:var(--body);vertical-align:middle}
+.pa{background:#3f8f34}.pb{background:#b8322a}.px{background:#2f63b0}.py{background:#c99a14;color:#1a120c}.pr{background:#46403a;border-radius:4px;min-width:30px}
+.keys{font-size:13px;color:var(--dim);line-height:1.7}
+#blurb{font-size:15px;color:var(--ink);background:var(--panel);padding:8px 14px;line-height:1.3;min-height:2.6em}
+
+/* combat hud */
+#combat{display:none}
+.tl{position:fixed;left:max(16px,2.5vw);top:max(16px,3vh);width:300px;display:flex;flex-direction:column;gap:6px}
+.hp{height:14px;background:rgba(0,0,0,.5);position:relative;border:1px solid rgba(255,255,255,.12)}
+.hp i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#b0261a,#e8562c);transition:width .15s}
+.armorpips{display:flex;gap:3px;flex-wrap:wrap}
+.armorpips b{width:22px;height:9px;background:var(--teal);opacity:.9}
+.armorpips b.off{background:rgba(255,255,255,.12)}
+.tr{position:fixed;right:max(16px,2.5vw);top:max(16px,3vh);display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+#radar{width:170px;height:170px;border-radius:50%;background:rgba(15,10,6,.7);border:1px solid rgba(255,255,255,.14)}
+.wave{font-family:var(--display);font-size:34px;line-height:.9;text-align:right}
+.wave small{display:block;font-family:var(--body);font-size:13px;letter-spacing:.14em;color:var(--dim)}
+.bl{position:fixed;left:max(16px,2.5vw);bottom:max(16px,3vh);display:flex;flex-direction:column;gap:4px}
+.speed{font-family:var(--display);font-size:78px;line-height:.8;font-variant-numeric:tabular-nums}
+.speed small{font-size:24px;color:var(--dim);margin-left:6px}
+.meter{width:230px;height:7px;background:rgba(255,255,255,.1)}
+.meter i{display:block;height:100%;background:#5ab8ff}
+#nitro{background:linear-gradient(90deg,#ff4a12,#ffc24a)!important}
+.br{position:fixed;right:max(16px,2.5vw);bottom:max(16px,3vh);text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.weap{font-family:var(--display);font-size:36px;line-height:.9}
+#heat{width:220px}
+#heat i{background:#ffb347}
+#rip{position:fixed;left:50%;bottom:4vh;transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:6px;background:var(--panel);padding:10px 18px 12px}
+#rip .big{font-size:30px;color:var(--ink)}
+#rip .meter{width:320px;height:12px}
+#rip .meter i{background:var(--danger)}
+#feed{position:fixed;left:50%;top:13vh;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px}
+.toast{background:var(--panel);padding:6px 16px 4px;font-family:var(--display);font-size:28px;letter-spacing:.03em;animation:tin .25s ease-out;white-space:nowrap}
+.toast small{font-family:var(--body);font-size:13px;letter-spacing:.14em;color:var(--dim);margin-right:10px;text-transform:uppercase}
+.toast.salv small{color:#ffcf6a}
+@keyframes tin{from{transform:translateY(-8px);opacity:0}}
+#reticle{position:fixed;width:46px;height:46px;margin:-23px 0 0 -23px;border:2px solid rgba(255,255,255,.75);border-radius:50%;display:none}
+#reticle::after{content:"";position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px;background:#fff;border-radius:50%}
+#reticle.lock{border-color:var(--danger)}
+#p2{font-size:14px;color:var(--teal);letter-spacing:.08em}
+#banner{position:fixed;inset:0;display:none;place-items:center;background:rgba(10,6,3,.55);pointer-events:auto;z-index:20}
+#banner .box{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding-inline:16px}
+#banner .big{font-size:clamp(70px,12vw,140px);color:var(--rust);font-weight:600}
+#banner p{margin:0;font-size:18px;color:var(--ink)}
+#banner .btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+#banner button{font-family:var(--display);font-size:28px;padding:8px 22px 2px;border:1px solid var(--ink);background:none;color:var(--ink);cursor:pointer}
+#banner button.pri{background:var(--rust);color:#1a0d05;border-color:var(--rust)}
+#banner button:focus-visible,#banner button.hl{outline:3px solid var(--ink);outline-offset:2px}
+.wavecall{position:fixed;left:0;right:0;top:34vh;text-align:center;font-family:var(--display);font-size:clamp(50px,8vw,96px);color:var(--ink);text-shadow:0 3px 0 var(--rust-deep);opacity:0;transition:opacity .4s;pointer-events:none}
+
+/* training */
+#tut{position:fixed;left:50%;top:max(12px,2.5vh);transform:translateX(-50%);width:min(760px,calc(100vw - 32px));display:grid;grid-template-columns:1fr 230px;gap:14px;align-items:center;background:rgba(18,12,8,.88);border:2px solid var(--rust);padding:14px 16px;z-index:5}
+#tut.ok{border-color:var(--good)}
+#tut.ok #tutn{color:var(--good)}
+#tutn{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--rust);font-weight:700}
+#tutt{font-family:var(--display);font-size:46px;line-height:.9;margin-top:4px;letter-spacing:.02em}
+#tutx{font-size:17px;line-height:1.3;margin-top:6px;max-width:52ch}
+#tutg{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.tuta{font-size:15px;color:var(--dim);margin-left:6px;display:inline-flex;gap:6px;align-items:center}
+#tutk{font-size:13px;color:var(--dim);margin-top:6px}
+.tbar{height:6px;background:rgba(255,255,255,.1);margin-top:10px}
+.tbar i{display:block;height:100%;width:0;background:var(--rust);transition:width .15s}
+#tut.ok .tbar i{background:var(--good)}
+.gl{display:inline-grid;place-items:center;min-width:38px;height:38px;border-radius:19px;font-weight:700;font-size:18px;color:#fff;font-family:var(--body);box-shadow:inset 0 -3px 0 rgba(0,0,0,.35)}
+.gl-A{background:#3f9b34}.gl-B{background:#c0342a}.gl-X{background:#2f6bc0}.gl-Y{background:#d4a514;color:#1a120c}
+.gl-LB,.gl-RB{background:#4a433c;border-radius:8px;min-width:48px;height:30px;font-size:15px}
+.gl-LT,.gl-RT{background:#4a433c;border-radius:14px 14px 6px 6px;min-width:44px;height:40px;font-size:15px}
+.gl-LS,.gl-RS{background:#2a2420;border:3px solid #8a7f72;min-width:40px;height:40px;border-radius:20px;font-size:14px}
+.gl-MENU,.gl-VIEW{background:#4a433c;min-width:34px;height:34px;font-size:17px}
+#padsvg{width:100%;height:auto;display:block}
+#padsvg .body{fill:#2a2420;stroke:#6a5d50;stroke-width:2}
+#padsvg .k{fill:#4a433c;stroke:#6a5d50;stroke-width:1.5;transition:fill .2s}
+#padsvg .k.on{fill:var(--rust);stroke:#ffd2a8;animation:pulse 1s ease-in-out infinite}
+#padsvg text{font-family:var(--body);font-size:10px;font-weight:700;fill:#f3e6cf;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+@keyframes pulse{50%{opacity:.55}}
+body.training #feed{top:auto;bottom:24vh}
+body.training .tl{top:auto;bottom:calc(max(16px,3vh) + 150px)}
+body.training .tr{top:auto;bottom:max(16px,3vh);right:auto;left:50%;transform:translateX(-50%);display:none}
+#train{pointer-events:auto;font-family:var(--display);font-size:24px;letter-spacing:.06em;padding:8px 16px 2px;background:var(--panel);color:var(--ink);border:1px solid var(--line);cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center}
+#train:hover,#setbtn:hover,#netbtn:hover{border-color:var(--rust)}
+#netbtn{pointer-events:auto;font-family:var(--display);font-size:22px;letter-spacing:.06em;padding:6px 16px 0;background:var(--panel);color:var(--ink);border:1px solid var(--line);cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center}
+#net{position:fixed;inset:0;display:grid;place-items:center;background:rgba(10,6,3,.9);z-index:25;pointer-events:auto}
+#net .sbox{width:min(560px,calc(100vw - 32px));display:flex;flex-direction:column;gap:10px}
+#net .big{font-size:64px;color:var(--ink);font-weight:600}#net .big span{color:var(--rust)}
+.ntext{margin:0;font-size:16px;color:var(--dim);line-height:1.35;min-height:1.2em}
+.nbtns{display:flex;flex-direction:column;gap:8px}
+#net button{font-family:var(--display);font-size:26px;letter-spacing:.05em;padding:8px 16px 2px;background:var(--panel);color:var(--ink);border:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;align-items:center;text-align:left}
+#net button.pri{background:var(--rust);color:#1a0d05;border-color:var(--rust)}
+.ncode{font-family:var(--display);font-size:110px;letter-spacing:.2em;color:var(--rust);line-height:1}
+#nslots{display:flex;gap:10px;margin:6px 0 10px}
+.nslot{width:72px;height:88px;display:grid;place-items:center;font-family:var(--display);font-size:68px;background:var(--panel);border:2px solid var(--line);padding-top:8px}
+.nslot.sel{border-color:var(--rust);color:var(--rust)}
+#setbtn{pointer-events:auto;font-family:var(--display);font-size:22px;letter-spacing:.06em;padding:6px 16px 0;background:var(--panel);color:var(--dim);border:1px solid var(--line);cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center}
+#setbtn:focus-visible{outline:3px solid var(--ink)}
+#settings{position:fixed;inset:0;display:grid;place-items:center;background:rgba(10,6,3,.9);z-index:25;pointer-events:auto}
+#settings .sbox{width:min(520px,calc(100vw - 32px));display:flex;flex-direction:column;gap:8px;max-height:calc(100% - 32px);overflow-y:auto}
+#settings .big{font-size:64px;color:var(--rust);font-weight:600}
+#settings .row{grid-template-columns:130px 36px 1fr 36px}
+#sblurb{font-size:15px;color:var(--ink);background:var(--panel);padding:8px 14px;min-height:1.4em}
+#sdone{font-family:var(--display);font-size:28px;padding:8px 22px 2px;background:var(--rust);color:#1a0d05;border:0;cursor:pointer}
+#sdone.hl,#sdone:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+#upg{position:fixed;inset:0;display:grid;place-items:center;background:rgba(10,6,3,.62);z-index:22;pointer-events:auto}
+#upg .ubox{width:min(980px,calc(100vw - 32px));display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;max-height:calc(100% - 32px);overflow-y:auto}
+#upg .big{font-size:clamp(48px,7vw,84px);color:var(--ink);font-weight:600}
+#upg .big span{color:var(--rust)}
+#uwave{color:var(--good);font-size:14px}
+#ucards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;width:100%}
+.ucard{position:relative;text-align:left;background:var(--panel-solid);border:2px solid var(--line);color:var(--ink);padding:16px 16px 18px;cursor:pointer;font-family:var(--body);display:flex;flex-direction:column;gap:6px;min-height:180px;transition:transform .12s,border-color .12s}
+#upg .ucard .big{font-size:36px;line-height:.9;color:var(--ink);overflow-wrap:anywhere}
+.ucard p{margin:0;font-size:16px;line-height:1.3;color:var(--dim)}
+.ucard .un{position:absolute;right:12px;top:10px;font-family:var(--display);font-size:22px;color:var(--dim)}
+.ucard.sel,.ucard:hover,.ucard:focus-visible{border-color:var(--rust);transform:translateY(-4px);outline:none}
+.ucard.sel p{color:var(--ink)}
+@media (max-width:760px){#ucards{grid-template-columns:1fr}.ucard{min-height:0}}
+#lbox{position:fixed;inset:0;pointer-events:none;z-index:6}
+#lbox i{position:absolute;left:0;right:0;height:0;background:#000;transition:height .5s ease}
+#lbox i:first-child{top:0}#lbox i:last-child{bottom:0}
+body.cine #lbox i{height:11vh}
+body.cine #combat .tl,body.cine #combat .tr,body.cine #combat .bl,body.cine #combat .br,body.cine #reticle,body.cine #ebars,body.cine #feed,body.cine #padstat{display:none!important}
+#cap{position:fixed;left:0;right:0;bottom:14vh;text-align:center;z-index:7;pointer-events:none;padding-inline:16px}
+#capb{font-family:var(--display);font-size:clamp(28px,4vw,46px);letter-spacing:.2em;color:var(--rust);line-height:1}
+#caps{font-family:var(--display);font-size:clamp(56px,10vw,128px);line-height:.85;color:var(--ink);text-shadow:0 4px 0 var(--rust-deep)}
+#cap.quiet #caps{font-size:clamp(26px,3.4vw,40px);letter-spacing:.04em;text-shadow:0 2px 6px #000}
+#cap.quiet #capb{font-size:16px}
+#capskip{position:fixed;right:max(16px,3vw);bottom:3vh;font-size:13px;color:var(--dim);letter-spacing:.08em}
+.gbtns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.gbtns button{font-size:19px!important;padding:6px 8px 0!important;gap:6px;white-space:nowrap}
+@media (max-height:860px){
+  #garage{gap:6px}
+  #garage header .big{font-size:40px}
+  .row{padding:2px 8px}.row .val{font-size:22px;padding-top:3px}.row .sub{display:none}.arrow{height:34px}
+  #blurb{font-size:14px;padding:6px 12px;min-height:0}
+  .stats{padding:6px 12px;gap:2px 10px}.stats .n{font-size:12px}
+  #go{font-size:24px;padding:7px 14px 2px}
+}
+.gl-DPAD{background:#4a433c;border-radius:8px;min-width:58px;height:30px;font-size:13px}
+#train:focus-visible{outline:3px solid var(--ink)}
+.xtip{font-size:14px;color:var(--dim);max-width:46ch;line-height:1.4;margin-top:6px}
+@media (max-width:760px){#tut{grid-template-columns:1fr}#padwrap{display:none}#tutt{font-size:34px}#tutx{font-size:15px}}
+@media (prefers-reduced-motion:reduce){#padsvg .k.on{animation:none}}
+#ebars{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.ebar{position:absolute;left:0;top:0;display:none;text-align:center;width:86px}
+.ebar span{display:block;font-size:11px;letter-spacing:.14em;font-weight:700;color:#ffd0c0;text-shadow:0 1px 2px #000}
+.ebar i{display:block;height:6px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.25);margin-top:2px}
+.ebar b{display:block;height:100%;background:#ff4d2e}
+.ebar em{display:block;font-style:normal;font-size:9px;letter-spacing:1px;color:var(--teal);line-height:1.2}
+#hurt{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 55%,rgba(190,20,0,.55) 100%)}
+@media (max-width:700px){
+  .tl{width:200px}.speed{font-size:52px}#radar{width:110px;height:110px}.weap{font-size:26px}
+  #garage header .big{font-size:48px}
+}
+@media (prefers-reduced-motion:reduce){.toast{animation:none}}
+</style>
+</head>
+<body>
+
+
+<canvas id="c" tabindex="0" aria-label="Game view"></canvas>
+<div id="padstat" role="status">No controller detected. Press any button on it.</div>
+
+<div id="loading">
+  <div class="wrap">
+    <div class="label">A wasteland co-op prototype</div>
+    <h1>SALVAGE <span>KINGS</span></h1>
+    <div id="loadbar"><i></i></div>
+    <div id="loadmsg">Loading rigs</div>
+    <button id="startbtn" hidden>ENTER THE YARD</button>
+    <p class="xtip">Playing on Xbox? Hold the <b>Menu</b> button and choose <b>Use game controls</b> so the controller works the game and B stays in the game. Hold the <b>View</b> button for full screen.</p>
+  </div>
+</div>
+
+<div class="hud">
+  <section id="garage" hidden aria-label="Garage">
+    <header>
+      <div class="label">The salvage yard</div>
+      <div class="big">BUILD YOUR <span>RIG</span></div>
+    </header>
+    <div class="rows" id="rows"></div>
+    <div id="blurb"></div>
+    <div class="stats" id="stats"></div>
+    <button id="go"><span>HIT THE PROVING GROUND</span><span class="pad pa">A</span></button>
+    <div class="gbtns">
+      <button id="train"><span>TRAIN</span><span class="pad px">X</span></button>
+      <button id="netbtn" class="ghost"><span>ONLINE</span><span class="pad pr">☰</span></button>
+      <button id="setbtn" class="ghost"><span>SETTINGS</span><span class="pad py">Y</span></button>
+    </div>
+  </section>
+  <div class="keys" id="gkeys" hidden>
+    Controller: <span class="pad pr">D-PAD</span> choose &nbsp;<span class="pad pr">RS</span> spin rig &nbsp;<span class="pad pa">A</span> start &nbsp;<span class="pad px">X</span> training &nbsp;<span class="pad py">Y</span> settings &nbsp;<span class="pad pr">☰</span> online<br>
+    Keyboard: arrow keys to choose, Enter to start, T for training, O for settings<br>Music on/off: <span class="pad pr">VIEW</span> or M
+  </div>
+
+  <section id="combat">
+    <div class="tl">
+      <div class="label">Rig hull</div>
+      <div class="hp"><i id="hpbar"></i></div>
+      <div class="label" style="margin-top:4px">Armor plates</div>
+      <div class="armorpips" id="pips"></div>
+      <div id="p2"></div>
+    </div>
+    <div class="tr">
+      <canvas id="radar" width="340" height="340"></canvas>
+      <div class="wave" id="wave">WAVE 1<small>0 WRECKED · 0 SCRAP</small></div>
+    </div>
+    <div class="bl">
+      <div class="speed"><span id="spd">0</span><small>MPH</small></div>
+      <div class="label">Nitro</div>
+      <div class="meter"><i id="nitro"></i></div>
+    </div>
+    <div class="br">
+      <div class="label" id="ramlbl">Ram</div>
+      <div class="weap" id="wname">SCRAP CANNON</div>
+      <div class="meter" id="heat"><i></i></div>
+      <div class="keys" id="ctrlhint"></div>
+    </div>
+    <div id="ebars"></div>
+    <div id="hurt"></div>
+    <div id="rip"><div class="big">HOOKED · DRIVE AWAY TO RIP</div><div class="keys">Hold <span class="pad pr">LB</span> or K to reel them in · <span class="pad pr">RB</span> lets go</div><div class="meter"><i id="ripbar"></i></div></div>
+    <div id="feed"></div>
+    <div id="reticle"></div>
+    <div class="wavecall" id="wavecall"></div>
+    <section id="tut" hidden aria-live="polite">
+      <div>
+        <div id="tutn">Training</div>
+        <div id="tutt">GAS</div>
+        <div id="tutx"></div>
+        <div id="tutg"></div>
+        <div class="tbar"><i id="tutp"></i></div>
+        <div id="tutk"></div>
+      </div>
+      <div id="padwrap">
+        <svg id="padsvg" viewBox="0 0 240 170" role="img" aria-label="Controller with the buttons for this step lit up">
+          <rect class="k" data-k="LT" x="42" y="4" width="34" height="16" rx="7"></rect><text x="59" y="12">LT</text>
+          <rect class="k" data-k="RT" x="164" y="4" width="34" height="16" rx="7"></rect><text x="181" y="12">RT</text>
+          <rect class="k" data-k="LB" x="36" y="24" width="48" height="11" rx="5"></rect><text x="60" y="30" style="font-size:8px">LB</text>
+          <rect class="k" data-k="RB" x="156" y="24" width="48" height="11" rx="5"></rect><text x="180" y="30" style="font-size:8px">RB</text>
+          <path class="body" d="M58 38 Q120 30 182 38 L196 41 Q226 48 233 100 Q240 152 214 164 Q196 170 182 150 L166 124 Q120 114 74 124 L58 150 Q44 170 26 164 Q0 152 7 100 Q14 48 44 41 Z"></path>
+          <circle class="k" data-k="LS" cx="62" cy="76" r="16"></circle><text x="62" y="76">LS</text>
+          <circle class="k" data-k="RS" cx="150" cy="112" r="16"></circle><text x="150" y="112">RS</text>
+          <path class="k" data-k="DPAD" d="M84 100 h10 v10 h10 v10 h-10 v10 h-10 v-10 h-10 v-10 h10 Z"></path>
+          <circle class="k" data-k="VIEW" cx="104" cy="74" r="6"></circle><text x="104" y="88" style="font-size:7px">VIEW</text>
+          <circle class="k" data-k="MENU" cx="136" cy="74" r="6"></circle><text x="136" y="88" style="font-size:7px">MENU</text>
+          <circle class="k" data-k="Y" cx="180" cy="58" r="9"></circle><text x="180" y="58">Y</text>
+          <circle class="k" data-k="X" cx="164" cy="74" r="9"></circle><text x="164" y="74">X</text>
+          <circle class="k" data-k="B" cx="196" cy="74" r="9"></circle><text x="196" y="74">B</text>
+          <circle class="k" data-k="A" cx="180" cy="90" r="9"></circle><text x="180" y="90">A</text>
+        </svg>
+      </div>
+    </section>
+  </section>
+</div>
+
+<div id="banner" role="dialog" aria-modal="true">
+  <div class="box">
+    <div class="big" id="btitle">WRECKED</div>
+    <p id="btext"></p>
+    <div class="btns">
+      <button class="pri" id="bretry">RUN IT BACK</button>
+      <button id="bskip" hidden>SKIP TRAINING</button>
+      <button id="bsettings">SETTINGS</button>
+      <button id="bgarage">BACK TO THE YARD</button>
+    </div>
+  </div>
+</div>
+
+<div id="lbox" aria-hidden="true"><i></i><i></i></div>
+<div id="cap" hidden><div id="capb"></div><div id="caps"></div><div id="capskip">Press <span class="pad pa">A</span> to skip</div></div>
+
+<div id="upg" role="dialog" aria-modal="true" aria-labelledby="uwave" hidden>
+  <div class="ubox">
+    <div class="label" id="uwave">WAVE CLEARED</div>
+    <div class="big">PICK AN <span>UPGRADE</span></div>
+    <div id="ucards"></div>
+    <div class="keys"><span class="pad pr">D-PAD</span> choose &nbsp;<span class="pad pa">A</span> bolt it on &nbsp;·&nbsp; Keyboard: 1, 2, 3 or arrows and Enter</div>
+  </div>
+</div>
+
+<div id="net" role="dialog" aria-modal="true" aria-labelledby="ntitle" hidden>
+  <div class="sbox">
+    <div class="label">Two Xboxes, one rig</div>
+    <div class="big" id="ntitle">ONLINE <span>CO-OP</span></div>
+    <p class="ntext">One player drives and picks the build. The other player rides on the gun from their own Xbox.</p>
+    <div id="nchoose" class="nbtns">
+      <button id="nhostb" class="pri"><span>HOST A RIG (I DRIVE)</span><span class="pad pa">A</span></button>
+      <button id="njoinb"><span>JOIN A RIG (I SHOOT)</span><span class="pad px">X</span></button>
+    </div>
+    <div id="nhost" hidden><div class="label">Your code</div><div id="ncode" class="ncode">....</div></div>
+    <div id="njoin" hidden><div class="label">Enter the host's code</div><div id="nslots"></div><button id="ngo" class="pri"><span>JOIN</span><span class="pad pa">A</span></button></div>
+    <div id="nstat" class="ntext" role="status"></div>
+    <button id="nback"><span>BACK</span><span class="pad pb">B</span></button>
+    <div class="keys">Host: press A, then read your 4-letter code to your friend. Join: D-pad up and down picks letters, left and right moves, A joins.</div>
+  </div>
+</div>
+
+<div id="settings" role="dialog" aria-modal="true" aria-labelledby="settitle" hidden>
+  <div class="sbox">
+    <div class="label">Salvage Kings</div>
+    <div class="big" id="settitle">SETTINGS</div>
+    <div class="rows" id="srows"></div>
+    <div id="sblurb"></div>
+    <button id="sdone" class="pri">DONE</button>
+    <div class="keys">Controller: <span class="pad pr">D-PAD</span> choose and change &nbsp;<span class="pad pa">A</span> done &nbsp;·&nbsp; Keyboard: arrow keys, Enter</div>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+<script type="module" src="game.js"></script>
+
+</body>
+</html>
