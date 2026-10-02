@@ -484,6 +484,7 @@ const sfx = (() => {
     rocket(dist = 0) { noise(0.9, 700, 0.6, 0.35 / (1 + dist * 0.04), 'bandpass', 0.8); noise(0.25, 160, 1, 0.3 / (1 + dist * 0.04), 'lowpass', 0.2); },
     flame(dist = 0) { noise(0.16, 520, 0.45, 0.2 / (1 + dist * 0.05), 'lowpass', 0.15); noise(0.14, 2600, 0.7, 0.06 / (1 + dist * 0.05), 'bandpass', 0.12); },
     thunder(big = 1) { noise(3.2, 110, 0.6, 0.9 * big, 'lowpass', 3.0); noise(0.5, 1800, 0.4, 0.35 * big, 'bandpass', 0.4); },
+    siren(dist = 0) { if (!ac) return; const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter(); o.type = 'square'; f.type = 'lowpass'; f.frequency.value = 1800; const t = ac.currentTime, v = 0.09 / (1 + dist * 0.02); for (let k = 0; k < 6; k++) o.frequency.setValueAtTime(k % 2 ? 640 : 900, t + k * 0.22); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v, t + 0.03); g.gain.setValueAtTime(v, t + 1.25); g.gain.linearRampToValueAtTime(0.0001, t + 1.35); o.connect(f); f.connect(g); g.connect(master); o.start(t); o.stop(t + 1.4); },
     slam() { noise(0.25, 160, 0.8, 0.9, 'lowpass', 0.22); noise(0.1, 2400, 1.5, 0.3, 'bandpass', 0.08); },
     click() { noise(0.05, 4200, 4, 0.5, 'bandpass', 0.04); setTimeout(() => noise(0.04, 3000, 4, 0.35, 'bandpass', 0.03), 70); },
     crank(dur = 0.7) { if (!ac) return; const o = ac.createOscillator(), g = ac.createGain(), lfo = ac.createOscillator(), lg = ac.createGain(); o.type = 'sawtooth'; o.frequency.value = 55; lfo.frequency.value = 11; lg.gain.value = 0.18; lfo.connect(lg); lg.connect(g.gain); g.gain.value = 0.2; const t = ac.currentTime; g.gain.setTargetAtTime(0, t + dur, 0.05); o.connect(g); g.connect(master); o.start(); lfo.start(); o.stop(t + dur + 0.3); lfo.stop(t + dur + 0.3); },
@@ -1534,6 +1535,7 @@ function startCombat(mode = 'waves') {
   if (mode === 'escape') return startEscape();
   if (WORLD.mode === 'escape') leaveEscapeWorld();
   if (mode === 'tutorial') leavePortWorld(); else syncMap();
+  if (WORLD.mode === 'port') ganReset();
   clearTutorial(); clearWorld(); if (garageRig) garageRig.root.removeFromParent(); garageRig = null;
   $('garage').hidden = true; $('gkeys').hidden = true; $('banner').style.display = 'none'; $('upg').hidden = true; $('combat').style.display = 'block'; game.upgT = 0;
   if (WORLD.mode === 'port') placePortProps(); else placeProps(NET.peer ? NET.seed : undefined);
@@ -1826,6 +1828,7 @@ function pause() { game.state = 'paused'; showBanner('PAUSED', game.mode === 'tu
 function gameOver() { game.state = 'over'; showBanner('WRECKED', `You made it to wave ${game.wave}. ${game.kills} raiders wrecked, ${game.scrap} scrap hauled.`, { bretry: 'RUN IT BACK', bsettings: 'SETTINGS', bgarage: 'CHANGE THE BUILD' }); }
 
 function combatStep(dt, P) {
+  if (WORLD.mode === 'port') ganStep(dt);
   // who controls what
   const drvPad = swapRoles && P[1] ? P[1] : P[0], gunPad = p2.on ? (swapRoles ? P[0] : P[1]) : null;
   const netGun = NET.role === 'host' && NET.peer; if (netGun) p2.on = true;
@@ -2554,7 +2557,7 @@ function hostSnap(dt) {
   }
   const P = player;
   const hud = P ? [Math.round(P.nitro), Math.round(P.heat), Math.round(P.fuel), r2(P.rkReload), P.overheat ? 1 : 0, P.fuelOut ? 1 : 0, H2(P.harp)] : 0;
-  const msg = { t: 'snap', st: game.state, mode: game.mode, wave: game.wave, kills: game.kills, scrap: game.scrap, cp: ESC.cp, rt: r2(ESC.runT || 0), veh, hud, ev: NET.ev.splice(0) };
+  const msg = { t: 'snap', st: game.state, mode: game.mode, wave: game.wave, kills: game.kills, scrap: game.scrap, cp: ESC.cp, rt: r2(ESC.runT || 0), veh, hud, ev: NET.ev.splice(0), gan: WORLD.mode === 'port' ? ganNet() : null };
   if (game.state === 'cine' || CINE.on) msg.cam = [r2(camera.position.x), r2(camera.position.y), r2(camera.position.z), r3(camera.quaternion.x), r3(camera.quaternion.y), r3(camera.quaternion.z), r3(camera.quaternion.w), Math.round(camera.fov)];
   if (game.state === 'over' || game.state === 'done' || game.state === 'paused') msg.ban = [$('btitle').textContent, $('btext').textContent];
   netSend('h2g', msg);
@@ -2564,7 +2567,7 @@ function H2(H) { return [H.state === 'ready' ? 0 : H.state === 'reload' ? 1 : H.
 // ---------------- guest side
 function guestMsg(m) {
   if (m.t === 'start') { if (!NET.started) guestStart(m); }
-  else if (m.t === 'snap') { NET.snap = m; NET.lastSnap = performance.now(); if (!NET.started) return; for (const e of m.ev) guestEvent(e); }
+  else if (m.t === 'snap') { NET.snap = m; NET.lastSnap = performance.now(); if (!NET.started) return; for (const e of m.ev) guestEvent(e); if (m.gan) ganApply(m.gan); }
 }
 function guestStart(m) {
   NET.started = true; NET.lastSnap = performance.now(); $('net').hidden = true; Object.assign(load, m.load); NET.seed = m.seed;
@@ -2581,6 +2584,7 @@ function guestEvent(e) {
     if (k === 'b') fireBullet(V3(e[1], e[2], e[3]), V3(e[4], e[5], e[6]), { isPlayer: !!e[7], team: 'net', mods: { gun: 1 } }, 0);
     else if (k === 'r') { const o = NET.ents.get(e[7]); fireRocket(V3(e[1], e[2], e[3]), V3(e[4], e[5], e[6]), o || { isPlayer: false, team: 'net', mods: { gun: 1 } }, null); }
     else if (k === 'x') explosion(V3(e[1], e[2], e[3]), e[4]);
+    else if (k === 'D') ganGuestDrop(e[1], e[2], e[3]);
     else if (k === 't') toast(e[1], e[2], !!e[3]);
     else if (k === 'L') strike(V3(e[1], e[2], e[3]), null);
     else if (k === 'B') collapseBridge(V3(e[1], e[2], e[3]));
@@ -2948,7 +2952,7 @@ function solidAt(p) { return WORLD.solid ? WORLD.solid(p.x, p.y, p.z) : null; }
 function enterPortWorld() {
   buildPort();
   if (WORLD.mode === 'port') return;
-  PORT.arenaStatic = STATIC.splice(0);
+  PORT.arenaStatic = STATIC.splice(0); STATIC.push(...GAN.legs);
   WORLD.mode = 'port'; WORLD.h = portTopH; WORLD.ground = portGround; WORLD.solid = portSolid; WORLD.clamp = portClamp; WORLD.lightDir = null;
   PORT.group.visible = true; arenaGroup.visible = false; applyTime(load.time);
   placePortProps();
@@ -3109,6 +3113,7 @@ function textDecal(text, w, h, col = 'rgba(240,238,230,0.9)', font = 'Impact, Ar
 function buildPort() {
   if (PORT.built) return; PORT.built = true;
   withSeed(4242, buildPortRaw);
+  ganBuild();
   portBuildNav();
 }
 function buildPortRaw() {
@@ -3403,12 +3408,125 @@ function buildPortRaw() {
 function portFx(dt) {
   if (!PORT.built || WORLD.mode !== 'port') return;
   if (PORT.water) { PORT.water.offset.x += dt * 0.004; PORT.water.offset.y += dt * 0.0025; }
+  ganFx(dt);
   const night = curTime === 'night'; if (PORT.lampM) PORT.lampM.emissiveIntensity = night ? 6 : 0.4; if (PORT.cityMs) for (const m of PORT.cityMs) m.emissiveIntensity = night ? 1.6 : 0; if (PORT.pools) for (const p of PORT.pools) p.visible = night;
+}
+
+// ============================================================ CONTAINER PORT: the Big Dropper (a gantry crane that drops containers on rigs)
+const GAN = { built: false, x: 0, vx: 0, tz: 0, state: 'seek', t: 0, cd: 6, sy: 12.5, cy: 0, cvy: 0, dropped: [], legs: [], target: null, X0: -36, X1: 36, Z: 11, drops: 0 };
+function ganBuild() {
+  if (GAN.built) return; GAN.built = true;
+  const G = new THREE.Group(); GAN.g = G; PORT.group.add(G);
+  const yel = new THREE.MeshStandardMaterial({ color: '#d9a81c', roughness: 0.5, metalness: 0.45 }); weather(yel, 0.12, 0.3);
+  const dark = new THREE.MeshStandardMaterial({ color: '#232220', roughness: 0.8, metalness: 0.5 });
+  const [hc, hg] = cvs(64, 256); for (let i = 0; i < 16; i++) { hg.fillStyle = i % 2 ? '#141414' : '#e2b322'; hg.beginPath(); hg.moveTo(0, i * 32 - 32); hg.lineTo(64, i * 32); hg.lineTo(64, i * 32 + 16); hg.lineTo(0, i * 32 - 16); hg.fill(); }
+  const haz = new THREE.MeshStandardMaterial({ map: ctex(hc), roughness: 0.6 });
+  const box = (w, h, d, m, x, y, z, par = G) => { const me = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); me.position.set(x, y, z); me.castShadow = true; me.receiveShadow = true; par.add(me); return me; };
+  const H = 19, S = GAN.Z;
+  for (const sz of [-1, 1]) {
+    for (const sx of [-1, 1]) { box(1.3, H, 1.3, yel, sx * 3.6, H / 2, sz * S); box(1.32, 3, 1.32, haz, sx * 3.6, 1.5 + 0.3, sz * S); for (const w of [-1, 1]) { const t = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.62, 20), dark); t.rotation.z = Math.PI / 2; t.position.set(sx * 3.6 + w * 0.0, 0.75, sz * S + w * 1.3); t.castShadow = true; G.add(t); } }
+    box(8.6, 1.2, 1.4, yel, 0, 1.6, sz * S); box(8.6, 1.6, 1.6, yel, 0, H + 0.8, sz * S);
+  }
+  for (const sx of [-1, 1]) box(1.3, 1.8, 2 * S + 1.6, yel, sx * 3.6, H + 0.9, 0);
+  box(3.4, 2.2, 3.4, yel, 2.2, H + 2.7, -S + 2); box(2.4, 2.2, 2.4, new THREE.MeshStandardMaterial({ color: '#e2e0d8', roughness: 0.5 }), -2.6, H - 2.2, S - 2.5); // machinery house, operator cab
+  GAN.beacons = []; const bm = new THREE.MeshStandardMaterial({ color: '#ffb020', emissive: '#ff9a10', emissiveIntensity: 0.3 });
+  for (const [x, z] of [[3.6, S], [-3.6, S], [3.6, -S], [-3.6, -S]]) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 8), bm); b.position.set(x, H + 1.9, z); G.add(b); GAN.beacons.push(b); }
+  GAN.beaconM = bm;
+  // trolley that rides the girders, with the spreader and the container on cables
+  const T = new THREE.Group(); G.add(T); GAN.trolley = T; box(8.2, 1.4, 3.2, yel, 0, H + 2.4, 0, T); box(2, 1.2, 2.2, dark, 0, H + 3.6, 0, T);
+  GAN.cables = []; for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1, 5), dark); c.position.set(sx * 2.4, 0, sz * 0.8); T.add(c); GAN.cables.push(c); }
+  const sp = new THREE.Group(); T.add(sp); GAN.spreader = sp; box(12.4, 0.5, 2.5, yel, 0, 0, 0, sp); box(1.2, 0.8, 1.6, dark, 0, 0.5, 0, sp);
+  const mats = portMaterials(); GAN.mats = mats;
+  GAN.box = new THREE.Mesh(new THREE.BoxGeometry(CT.L, CT.H, CT.W), mats[(Math.random() * mats.length) | 0]); GAN.box.castShadow = GAN.box.receiveShadow = true; PORT.group.add(GAN.box);
+  // red target ring painted under the drop point during the warning
+  const [rc, rg] = cvs(256, 256); rg.strokeStyle = 'rgba(255,40,20,1)'; rg.lineWidth = 16; rg.beginPath(); rg.arc(128, 128, 104, 0, 6.283); rg.stroke(); rg.lineWidth = 8; rg.beginPath(); rg.moveTo(128, 20); rg.lineTo(128, 236); rg.moveTo(20, 128); rg.lineTo(236, 128); rg.stroke();
+  GAN.ring = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), new THREE.MeshBasicMaterial({ map: ctex(rc), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); GAN.ring.rotation.x = -Math.PI / 2; GAN.ring.visible = false; PORT.group.add(GAN.ring);
+  GAN.legs = []; for (const sz of [-1, 1]) for (const sx of [-1, 1]) GAN.legs.push({ x: 0, z: sz * S, r: 1.5, ox: sx * 3.6, gan: true });
+  GAN.H = H; ganPose();
+}
+function ganPose() {
+  if (!GAN.g) return; GAN.g.position.set(GAN.x, 0, 0); GAN.trolley.position.z = GAN.tz;
+  const top = GAN.H + 1.7; GAN.spreader.position.y = GAN.sy; for (const c of GAN.cables) { const L = Math.max(0.2, top - GAN.sy); c.scale.y = L; c.position.y = GAN.sy + L / 2; }
+  for (const l of GAN.legs) l.x = GAN.x + l.ox;
+  if (GAN.state !== 'drop' && GAN.state !== 'empty') { GAN.box.visible = GAN.state !== 'reload' || GAN.t < 0; GAN.box.position.set(GAN.x, GAN.sy - 0.25 - CT.H / 2, GAN.tz); GAN.box.rotation.set(0, 0, 0); }
+}
+function ganReset() {
+  if (!GAN.built) return;
+  for (const d of GAN.dropped) { d.m.removeFromParent(); ganUnbox(d.b); } GAN.dropped.length = 0; portBuildNav();
+  Object.assign(GAN, { x: 0, vx: 0, tz: 0, state: 'seek', t: 0, cd: 6, sy: 12.5, target: null, drops: 0 }); GAN.box.visible = true; GAN.ring.visible = false; ganPose();
+}
+function ganUnbox(b) {
+  const i = PORT.boxes.indexOf(b); if (i >= 0) PORT.boxes.splice(i, 1);
+  for (const L of PORT.cells.values()) { const k = L.indexOf(b); if (k >= 0) L.splice(k, 1); }
+}
+function ganStep(dt) {
+  if (!GAN.built || WORLD.mode !== 'port' || NET.role === 'guest') return;
+  GAN.cd -= dt; GAN.t -= dt;
+  const live = vehicles.filter((v) => v.alive);
+  // pick a victim: whoever is closest to the crane's rails (rigs right under it first)
+  const score = (v) => Math.abs(v.pos.x - GAN.x) + Math.max(0, Math.abs(v.pos.z) - (GAN.Z - 2)) * 4 + (v.y > 3 ? 40 : 0);
+  if (GAN.state === 'seek') {
+    let best = null, bs = 70; for (const v of live) { const s = score(v); if (s < bs) { bs = s; best = v; } } GAN.target = best;
+    const tx = best ? clamp(best.pos.x, GAN.X0, GAN.X1) : 0, tz = best ? clamp(best.pos.z, -GAN.Z + 2.2, GAN.Z - 2.2) : 0;
+    const ax = clamp((tx - GAN.x) * 1.2 - GAN.vx * 1.6, -5, 5); GAN.vx = clamp(GAN.vx + ax * dt, -8, 8); GAN.x = clamp(GAN.x + GAN.vx * dt, GAN.X0, GAN.X1);
+    GAN.tz += clamp(tz - GAN.tz, -6 * dt, 6 * dt);
+    if (best && GAN.cd <= 0 && Math.abs(best.pos.x - GAN.x) < 2.6 && Math.abs(best.pos.z - GAN.tz) < 1.8 && Math.abs(best.pos.z) < GAN.Z - 1.5 && best.y < 3.5) {
+      GAN.state = 'warn'; GAN.t = 1.35; GAN.vx = 0; sfx.siren && sfx.siren(player ? player.pos.distanceTo(best.pos) : 0); netEv && netEv('G');
+    }
+  } else if (GAN.state === 'warn') {
+    if (GAN.t <= 0) { GAN.state = 'drop'; GAN.cy = GAN.sy - 0.25 - CT.H / 2; GAN.cvy = 0; sfx.click(); }
+  } else if (GAN.state === 'drop') {
+    GAN.cvy -= 26 * dt; GAN.cy += GAN.cvy * dt;
+    const x = GAN.x, z = GAN.tz, bot = GAN.cy - CT.H / 2;
+    // crush anything under the box
+    for (const v of live) {
+      if (v.crushT && game.t - v.crushT < 1) continue;
+      if (Math.abs(v.pos.x - x) < CT.L / 2 + v.box.hx * 0.3 && Math.abs(v.pos.z - z) < CT.W / 2 + v.box.hx * 0.8 && bot < v.y + Math.min(2.2, v.box.hy * 0.7) && bot > v.y - 1) {
+        v.crushT = game.t; const dmg = v.isPlayer ? 70 : 230; v.damage(dmg, null, V3(0, -1, 0), null, 'ram'); { const pc = v.pieces.filter((q) => q.attached && /Roof|Hood|Grille/.test(q.key)); for (const q of pc.slice(0, 2)) v.detachPiece(q, V3(rnd(-1, 1), 1, rnd(-1, 1)), null); }
+        const side = Math.sign(v.pos.z - z) || 1; v.vel.z += side * 14; v.vel.x += (v.pos.x - x) * 1.2; v.yawV += rnd(-2, 2); v.air = true; v.vy = 5;
+        sparks(v.root.position.clone().add(V3(0, 2, 0)), V3(0, 1, 0), 26); shake(0.5, v.pos); sfx.clang(); if (v.isPlayer) rumble(1, 1, 400);
+      }
+    }
+    const g = portGround(x, z, bot + 0.5);
+    if (bot <= g) { // landed
+      GAN.cy = g + CT.H / 2; const b = portBox(x - CT.L / 2, x + CT.L / 2, z - CT.W / 2, z + CT.W / 2, g, g + CT.H, { dropped: true });
+      const m = new THREE.Mesh(GAN.box.geometry, GAN.box.material); m.position.set(x, GAN.cy, z); m.rotation.y = Math.random() < 0.5 ? 0 : Math.PI; m.castShadow = m.receiveShadow = true; PORT.group.add(m);
+      GAN.dropped.push({ m, b }); if (GAN.dropped.length > 8) { const o = GAN.dropped.shift(); o.m.removeFromParent(); ganUnbox(o.b); }
+      portBuildNav(); GAN.box.visible = false; GAN.drops++;
+      const at = V3(x, g + 0.3, z); shake(0.7, at); sfx.slam(); sfx.boom(0.7); flash(at, 30, 0.08, '#ffd090');
+      for (let i = 0; i < 40; i++) { const a = rnd(0, 6.28); emit(PS_NORM, at.clone().add(V3(Math.cos(a) * rnd(1, 6), 0, Math.sin(a) * rnd(0.5, 2))), V3(Math.cos(a) * rnd(3, 8), rnd(0.5, 2.5), Math.sin(a) * rnd(2, 5)), rnd(1.5, 2.8), 1.5, rnd(5, 9), COL.dust, 0.5, COL.dust2, 0); }
+      netEv && netEv('D', r2(x), r2(z), r2(g));
+      GAN.state = 'reload'; GAN.t = 3.2;
+    }
+  } else if (GAN.state === 'reload') {
+    GAN.sy += (16 - GAN.sy) * Math.min(1, dt * 1.5);
+    if (GAN.t <= 0) { GAN.box.material = GAN.mats[(Math.random() * GAN.mats.length) | 0]; GAN.box.visible = true; GAN.sy = 12.5; GAN.state = 'seek'; GAN.cd = 4.5; }
+  }
+  if (GAN.state === 'drop') { GAN.box.position.set(GAN.x, GAN.cy, GAN.tz); }
+  ganPose();
+}
+// visual-only bits every frame (beacons, ring) plus the guest's copy
+function ganFx(dt) {
+  if (!GAN.built) return;
+  const warn = GAN.state === 'warn', k = warn ? (Math.sin(performance.now() / 70) > 0 ? 9 : 0.5) : (Math.sin(performance.now() / 400) > 0.6 ? 3 : 0.3);
+  GAN.beaconM.emissiveIntensity = k;
+  GAN.ring.visible = warn; if (warn) { const g = portGround(GAN.x, GAN.tz, 0.5); GAN.ring.position.set(GAN.x, g + 0.06, GAN.tz); const s = 0.8 + 0.2 * Math.sin(performance.now() / 90); GAN.ring.scale.setScalar(s); }
+}
+function ganNet() { return GAN.built ? [r2(GAN.x), r2(GAN.tz), ['seek', 'warn', 'drop', 'reload'].indexOf(GAN.state), r2(GAN.cy), r2(GAN.sy)] : null; }
+function ganApply(a) {
+  if (!a || !GAN.built) return; [GAN.x, GAN.tz] = [a[0], a[1]]; const st = ['seek', 'warn', 'drop', 'reload'][a[2]] || 'seek'; if (st === 'warn' && GAN.state !== 'warn') sfx.siren && sfx.siren(0);
+  GAN.state = st; GAN.cy = a[3]; GAN.sy = a[4]; if (st === 'drop') GAN.box.position.set(GAN.x, GAN.cy, GAN.tz); GAN.box.visible = st !== 'reload'; ganPose();
+}
+function ganGuestDrop(x, z, g) {
+  if (!GAN.built) return; const b = portBox(x - CT.L / 2, x + CT.L / 2, z - CT.W / 2, z + CT.W / 2, g, g + CT.H, { dropped: true });
+  const m = new THREE.Mesh(GAN.box.geometry, GAN.box.material); m.position.set(x, g + CT.H / 2, z); m.castShadow = m.receiveShadow = true; PORT.group.add(m); GAN.dropped.push({ m, b });
+  if (GAN.dropped.length > 8) { const o = GAN.dropped.shift(); o.m.removeFromParent(); ganUnbox(o.b); }
+  shake(0.5, V3(x, g, z)); sfx.slam(); sfx.boom(0.6);
 }
 
 window.__sk = { vehicles, game, debris, keys, get player() { return player; },
   sim(sec, dt = 1 / 30) { for (let t = 0; t < sec; t += dt) { game.t += dt; if (game.state === 'cine') cineStep(dt, []); else if (game.state === 'combat') combatStep(dt, []); if (NET.role === 'host') hostSnap(dt); else if (game.state === 'over') { for (const v of vehicles) v.update(dt, {}); updateDebris(dt); } updatePS(PS_ADD, dt); updatePS(PS_NORM, dt); kPressed.clear(); } },
-  kit: { PORT, portSeg, portGround, enterPortWorld, leavePortWorld, THREE, V3, Vehicle, vehicles, scene, camera, game, ESC, CINE, load, props, debris, rockets, get player() { return player; }, set player(v) { player = v; }, fxStep, renderFrame, combatStep, cineStep, startEscape, startCombat, enterGarage, cineCam, caption, swapWeapon, launchHarpoon, releaseHarpoon, updateHarpoon, fireRocket, explosion, strike, makeBarrel, makeTires, spawnDummy: (d, s, o) => spawnDummy(d, s, o), removeVehicle, pathX, escGrid: (x, z) => escGrid(x, z), roadH, height, ENEMY_PAINT, setNight, enterEscapeWorld, leaveEscapeWorld, placeProps, clearWorld, collapseBridge, spawnCrate, updateBullets, updateRockets, updateDebris, collisions, propCollisions, escapeStep, escSpawn, introCine, endingCine, clearTutorial, set camYaw(v) { camYaw = v; } },
+  kit: { PORT, GAN, ganStep, portSeg, portGround, enterPortWorld, leavePortWorld, THREE, V3, Vehicle, vehicles, scene, camera, game, ESC, CINE, load, props, debris, rockets, get player() { return player; }, set player(v) { player = v; }, fxStep, renderFrame, combatStep, cineStep, startEscape, startCombat, enterGarage, cineCam, caption, swapWeapon, launchHarpoon, releaseHarpoon, updateHarpoon, fireRocket, explosion, strike, makeBarrel, makeTires, spawnDummy: (d, s, o) => spawnDummy(d, s, o), removeVehicle, pathX, escGrid: (x, z) => escGrid(x, z), roadH, height, ENEMY_PAINT, setNight, enterEscapeWorld, leaveEscapeWorld, placeProps, clearWorld, collapseBridge, spawnCrate, updateBullets, updateRockets, updateDebris, collisions, propCollisions, escapeStep, escSpawn, introCine, endingCine, clearTutorial, set camYaw(v) { camYaw = v; } },
   press(c) { kPressed.add(c); }, WORLD, startCombat, TUT, ESC, CINE, escH, pathX, openUpgrade, pickUpgrade, props, STATIC, swapWeapon, SET, music, musicTarget, sfx };
 // ============================================================ boot
 (async () => {
