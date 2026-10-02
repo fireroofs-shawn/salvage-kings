@@ -9,10 +9,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 // ============================================================ config
 const CFG = {
-  juggernaut: { name: 'JUGGERNAUT', hp: 260, max: 29, accel: 10, turn: 1.25, grip: 5.5, mass: 3.0, r: 2.7, hx: 1.55, hy: 3.1, hz: 4.0, cam: [10.5, 4.2], blurb: 'Six-wheel war hauler. Soaks punishment and flattens anything in its path. Slow to turn, slow to stop.' },
-  raider: { name: 'RAIDER', hp: 170, max: 37, accel: 15, turn: 1.85, grip: 7, mass: 1.8, r: 2.0, hx: 1.25, hy: 2.2, hz: 2.5, cam: [8.2, 3.3], blurb: 'Stripped-down scout jeep with a gunner post behind the roll bar. The all-rounder.' },
+  juggernaut: { name: 'JUGGERNAUT', hp: 260, max: 29, accel: 10, turn: 1.25, grip: 5.5, mass: 3.0, r: 2.7, hx: 1.55, hy: 3.4, hz: 4.0, cam: [10.5, 4.2], blurb: 'Six-wheel long-nose war truck. Blower through the hood, chrome stacks, armored flatbed. Soaks punishment and flattens anything in its path. Slow to turn.' },
+  raider: { name: 'RAIDER', hp: 170, max: 37, accel: 15, turn: 1.85, grip: 7, mass: 1.8, r: 2.0, hx: 1.25, hy: 2.7, hz: 2.75, cam: [8.9, 3.8], blurb: 'Long-wheelbase rock crawler on huge mud tires, with a soft top, coilovers, tube bumper and a roof light bar. Solid all-rounder with a gun on the roof.' },
   widowmaker: { name: 'WIDOWMAKER', hp: 150, max: 42, accel: 19, turn: 2.1, grip: 6.5, mass: 1.5, r: 1.9, hx: 1.0, hy: 1.5, hz: 2.45, cam: [7.8, 3.0], blurb: 'Supercharged V8 coupe with a blower punched through the hood. Brutal straight-line speed and the best drifter in the yard.' },
-  scrapper: { name: 'SCRAPPER', hp: 115, max: 45, accel: 21, turn: 2.5, grip: 8, mass: 1.1, r: 1.8, hx: 1.3, hy: 1.8, hz: 2.4, cam: [7.4, 2.9], blurb: 'Tube-frame dune buggy. Fastest thing on the sand and turns on a dime. Goes down quick.' },
+  blackhorn: { name: 'BLACKHORN', hp: 200, max: 43, accel: 18, turn: 1.7, grip: 6.6, mass: 2.4, r: 2.2, hx: 1.15, hy: 2.3, hz: 2.7, cam: [9.2, 3.9], ramMul: 1.25, blurb: 'Lifted 70s big-block muscle coupe on mud tires, chrome headers out the fenders. Hits almost as hard as the Juggernaut but runs with the fast cars. Handles better than you would think.' },
+  warwagon: { name: 'WARWAGON', hp: 245, max: 38, accel: 15, turn: 1.5, grip: 6.8, mass: 2.8, r: 2.6, hx: 1.3, hy: 2.9, hz: 3.4, cam: [10.8, 4.5], ramMul: 1.35, blurb: 'Lifted crew-cab diesel pickup with a winch bumper and twin chrome stacks. Torque for days, built like a bulldozer, and still quicker than the Juggernaut.' },
+  scrapper: { name: 'DEUCE', hp: 115, max: 45, accel: 21, turn: 2.5, grip: 8, mass: 1.1, r: 1.8, hx: 1.3, hy: 1.8, hz: 2.4, cam: [7.4, 2.9], blurb: '1932-style highboy hot rod. White with red 33 roundels, chrome blown V8, skinny front tires and fat rear slicks. Fastest thing on the sand and turns on a dime. Goes down quick.' },
 };
 const WEAPONS = {
   cannon: { name: 'SCRAP CANNON', blurb: 'Twin-barrel autocannon behind a riveted shield. Chews armor plates off at range. Overheats if you hold it too long.', dps: 60 },
@@ -21,15 +23,22 @@ const WEAPONS = {
   rockets: { name: 'ROCKET LAUNCHER', blurb: 'Bazooka-style launcher. Each rocket homes in on your target, blows up on impact and blasts plates off everything nearby. Reloads after every shot.', dps: 45 },
 };
 const RAMS = {
-  spike: { name: 'SPIKED RAM', mult: 1.8, grind: 0, blurb: 'Steel spikes welded to a push bar.' },
+  spike: { name: 'FULL SPIKES', mult: 1.8, grind: 0, blurb: 'Spiked push bar up front, plus spikes down both sides, across the tail and on the wheel hubs. Anything that hits you from any side gets stabbed.' },
   saw: { name: 'SAW PLOW', mult: 1.35, grind: 28, blurb: 'Spinning saw blades that keep cutting while you push.' },
   none: { name: 'STOCK BUMPER', mult: 0.7, grind: 0, blurb: 'No ram fitted.' },
 };
 const ARMORS = {
-  light: { name: 'STRIPPED', tiers: 0, speed: 1.0, blurb: 'No plates. Maximum speed.' },
-  scrap: { name: 'SCRAP PLATING', tiers: 1, speed: 0.96, blurb: 'Corrugated side sheets, window cage, door plates.' },
-  heavy: { name: 'HEAVY PLATE', tiers: 2, speed: 0.88, blurb: 'Everything, plus hood and roof plate, wheel guards and a rear plate.' },
+  ballistic: { name: 'BALLISTIC PLATE', tiers: 2, speed: 0.92, resist: { gun: 0.6 }, blurb: 'Full plating in thick riveted steel. Cannon shells and harpoon hits do 40% less.' },
+  blast: { name: 'BLAST PLATE', tiers: 2, speed: 0.92, resist: { blast: 0.55 }, blurb: 'Full plating, layered with sandbags. Rockets, barrels and lightning do 45% less.' },
+  crash: { name: 'CRASH CAGE', tiers: 2, speed: 0.92, resist: { ram: 0.6 }, blurb: 'Full plating on a bolted crash cage. Rams, saws and wrecks do 40% less.' },
+  fire: { name: 'FIRE SKIN', tiers: 2, speed: 0.92, resist: { fire: 0.4 }, blurb: 'Full plating wrapped in fireproof skin. Flamethrowers and burning do 60% less.' },
+  // older names (saved loadouts, scripted enemies): full plating, no special resistance
+  light: { name: 'FULL PLATING', tiers: 2, speed: 0.92, resist: {}, blurb: '' },
+  scrap: { name: 'FULL PLATING', tiers: 2, speed: 0.92, resist: {}, blurb: '' },
+  heavy: { name: 'FULL PLATING', tiers: 2, speed: 0.92, resist: {}, blurb: '' },
 };
+const ARMOR_TYPES = ['ballistic', 'blast', 'crash', 'fire'];
+const rndArmor = () => ARMOR_TYPES[Math.floor(Math.random() * 4)];
 const GUN_NODE = { cannon: 'Cannon', harpoon: 'Harpoon', rockets: 'Rocket', flamer: 'Flamer' };
 const PIECE_NAMES = { Side: 'Corrugated Side Sheet', Door: 'Riveted Door Plate', Grille: 'Window Cage', Hood: 'Hood Plate', Roof: 'Roof Plate', Rear: 'Rear Plate', Guard: 'Wheel Guard', Tank: 'Tank Armor' };
 // ============================================================ settings + difficulty
@@ -70,17 +79,14 @@ const su = sky.material.uniforms;
 su.turbidity.value = 7; su.rayleigh.value = 1.8; su.mieCoefficient.value = 0.007; su.mieDirectionalG.value = 0.82;
 su.sunPosition.value.copy(sunDir);
 scene.add(sky);
-{
-  const pm = new THREE.PMREMGenerator(renderer);
-  const es = new THREE.Scene();
-  const s2 = new Sky(); s2.scale.setScalar(1000);
-  Object.assign(s2.material.uniforms.turbidity, { value: 7 });
-  s2.material.uniforms.rayleigh.value = 1.8; s2.material.uniforms.mieCoefficient.value = 0.007; s2.material.uniforms.mieDirectionalG.value = 0.82;
-  s2.material.uniforms.sunPosition.value.copy(sunDir);
-  es.add(s2);
-  scene.environment = pm.fromScene(es, 0.02).texture;
-  scene.environmentIntensity = 0.55;
+const ENV = { pm: new THREE.PMREMGenerator(renderer), scene: new THREE.Scene(), sky: new Sky(), tex: null };
+ENV.sky.scale.setScalar(1000); ENV.scene.add(ENV.sky);
+function makeEnv(dir, tur, ray, mie) {
+  const u = ENV.sky.material.uniforms; u.turbidity.value = tur; u.rayleigh.value = ray; u.mieCoefficient.value = mie; u.mieDirectionalG.value = 0.82; u.sunPosition.value.copy(dir);
+  const rt = ENV.pm.fromScene(ENV.scene, 0.02); if (ENV.tex) ENV.tex.dispose(); ENV.tex = rt; scene.environment = rt.texture;
 }
+makeEnv(sunDir, 7, 1.8, 0.007);
+scene.environmentIntensity = 0.55;
 const sun = new THREE.DirectionalLight('#ffd6a4', 3.2);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
@@ -124,12 +130,38 @@ const clamp = THREE.MathUtils.clamp;
 
 // ============================================================ terrain
 const ARENA = 240, TS = 900, TN = 225, CELL = TS / TN;
+// sand-dune kickers: a long rising face that gets steeper toward a crest, then a short drop off the back
+// (cars launch off the lip). x, z = crest centre, a = facing angle, H = height, L = run-up length, W = half width
+const RAMPS = [
+  { x: 62, z: 28, a: 0.4, H: 4.2, L: 20, W: 11 }, { x: -70, z: 46, a: 2.6, H: 3.6, L: 17, W: 10 },
+  { x: -40, z: -92, a: 4.4, H: 5.0, L: 24, W: 13 }, { x: 108, z: -70, a: 3.9, H: 4.6, L: 22, W: 12 },
+  { x: 20, z: 140, a: 1.5, H: 5.4, L: 26, W: 14 }, { x: -150, z: -30, a: 0.2, H: 4.4, L: 20, W: 12 },
+  { x: 150, z: 95, a: 5.3, H: 3.8, L: 18, W: 10 }, { x: -110, z: 135, a: 1.0, H: 4.8, L: 22, W: 12 },
+  { x: 40, z: -165, a: 2.0, H: 4.0, L: 20, W: 11 }, { x: 175, z: -10, a: 3.2, H: 3.4, L: 16, W: 9 },
+];
+function rampH(x, z) {
+  let h = 0;
+  for (const r of RAMPS) {
+    const dx = x - r.x, dz = z - r.z; if (dx * dx + dz * dz > (r.L + r.W + 10) ** 2) continue;
+    const c = Math.cos(r.a), sn = Math.sin(r.a);
+    const t = -dx * sn + dz * c; let s = dx * c + dz * sn; s += 0.018 * t * t; // crest curves back like a real dune
+    const at = Math.abs(t); if (at > r.W) continue;
+    const w = at < r.W * 0.55 ? 1 : 1 - smooth(r.W * 0.55, r.W, at);
+    let pr = 0;
+    if (s > -r.L && s <= 0) pr = Math.pow((s + r.L) / r.L, 1.8);
+    else if (s > 0 && s < 7) pr = Math.pow(1 - s / 7, 2.2);
+    h = Math.max(h, r.H * pr * w);
+  }
+  return h;
+}
+const onRamp = (x, z, pad = 0) => RAMPS.some((r) => Math.hypot(x - r.x, z - r.z) < r.L * 0.7 + r.W + pad);
 function hRaw(x, z) {
   const r = Math.hypot(x, z);
   const d = (fbm(x * 0.011 + 3, z * 0.011 - 7, 5) - 0.5) * 2;
   const ridges = Math.pow(1 - Math.abs(fbm(x * 0.02 - 11, z * 0.02 + 5, 3) * 2 - 1), 3);
   let h = d * 5.5 * smooth(22, 120, r) + ridges * 3.2 * smooth(40, 110, r);
   h += (fbm(x * 0.07, z * 0.07, 3) - 0.5) * 0.7;
+  h += rampH(x, z);
   h += Math.max(0, r - ARENA + 20) * 0.28 + Math.pow(Math.max(0, r - ARENA - 10) * 0.07, 2) * 6 * fbm(x * 0.02, z * 0.02, 3);
   return h;
 }
@@ -195,6 +227,7 @@ withSeed(7, () => {
   let k = 0;
   while (k < n) {
     const a = Math.random() * Math.PI * 2, d = rnd(30, ARENA - 8); const x = Math.cos(a) * d, z = Math.sin(a) * d;
+    if (onRamp(x, z, 4)) continue;
     const sc = Math.random() < 0.2 ? rnd(3, 6) : rnd(0.8, 2.4);
     q.setFromEuler(new THREE.Euler(rnd(-0.3, 0.3), rnd(0, 6.28), rnd(-0.3, 0.3))); s.set(sc * rnd(0.9, 1.6), sc * rnd(0.6, 1.1), sc * rnd(0.9, 1.5));
     p.set(x, height(x, z) - sc * 0.15, z); m4.compose(p, q, s); im.setMatrixAt(k++, m4);
@@ -245,7 +278,7 @@ function makeCactus(x, z) {
 function placeProps(seed) { return withSeed(seed == null ? (Math.random() * 1e9) | 0 : seed, placePropsRaw); }
 function placePropsRaw() {
   for (const p of props) p.obj.removeFromParent(); props.length = 0;
-  const free = (x, z, r) => !STATIC.some((s) => Math.hypot(s.x - x, s.z - z) < s.r + r) && Math.hypot(x, z) > 18;
+  const free = (x, z, r) => !STATIC.some((s) => Math.hypot(s.x - x, s.z - z) < s.r + r) && Math.hypot(x, z) > 18 && !onRamp(x, z, r + 3);
   for (let c = 0; c < 16; c++) {
     let cx, cz, k = 0; do { const a = Math.random() * 6.28, d = rnd(30, ARENA - 20); cx = Math.cos(a) * d; cz = Math.sin(a) * d; } while (!free(cx, cz, 3) && ++k < 20);
     const nb = 2 + ((Math.random() * 4) | 0); for (let i = 0; i < nb; i++) makeBarrel(cx + rnd(-1.8, 1.8), cz + rnd(-1.8, 1.8));
@@ -273,7 +306,7 @@ function barrelBlast(pos, src) {
     const k = 1 - d / R; const dir = c.clone().sub(pos).setY(0).normalize();
     const by = v === src ? null : src;
     if (v.isPlayer && by && by.team === v.team) continue;
-    v.damage((v.isPlayer ? 40 : 80) * Math.pow(k, 0.6), pos, dir, by);
+    v.damage((v.isPlayer ? 40 : 80) * Math.pow(k, 0.6), pos, dir, by, 'blast');
     v.vel.addScaledVector(dir, 16 * k / v.mass); v.yawV = clamp(v.yawV + rnd(-2, 2) * k, -2.5, 2.5);
     if (k > 0.35 && !v.air) { v.air = true; v.vy = 5 + 7 * k / v.mass; }
   }
@@ -400,7 +433,7 @@ const TEMPL = {}; let WEAP = null;
 const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
 const LMSG = document.getElementById('loadmsg'), LBAR = document.querySelector('#loadbar i');
 async function loadAll() {
-  const names = ['juggernaut', 'raider', 'scrapper', 'widowmaker', 'weapons'];
+  const names = ['juggernaut', 'raider', 'scrapper', 'widowmaker', 'blackhorn', 'warwagon', 'weapons'];
   let done = 0;
   const fetchModel = async (n) => {
     const r = await fetch(`${n}.txt`); if (!r.ok) throw new Error('model ' + n + ' ' + r.status);
@@ -472,12 +505,14 @@ const music = (() => {
     const ac = sfx.ctx; if (!ac || started || loading) return; loading = true;
     try {
       const dir = SET.score === 1 ? 'hh_' : ''; srcs = [];
-      const bufs = await Promise.all(STEMS.map(async (n) => { const r = await fetch(`${dir}${n}.ogg`); if (!r.ok) throw new Error(n); return ac.decodeAudioData(await r.arrayBuffer()); }));
+      // decode one stem at a time at 32 kHz: keeps memory low enough for Xbox (full-rate decode of 4 long stems is ~200 MB)
+      const bufs = [];
+      for (const n of STEMS) { const r = await fetch(`${dir}${n}.ogg`); if (!r.ok) throw new Error(n); bufs.push(await decodeLow(ac, await r.arrayBuffer())); }
       bus = ac.createGain(); bus.gain.value = muted ? 0 : SET.music * 0.07; bus.connect(ac.destination);
       const t0 = ac.currentTime + 0.15;
       STEMS.forEach((n, i) => { const g = ac.createGain(); g.gain.value = 0; g.connect(bus); const src = ac.createBufferSource(); src.buffer = bufs[i]; src.loop = true; src.connect(g); src.start(t0); gains[n] = g; srcs.push(src); });
       started = true;
-      fetch(dir + 'stinger.ogg').then((r) => r.arrayBuffer()).then((b) => ac.decodeAudioData(b)).then((b) => (stingBuf = b)).catch(() => {});
+      fetch(dir + 'stinger.ogg').then((r) => r.arrayBuffer()).then((b) => decodeLow(ac, b)).then((b) => (stingBuf = b)).catch(() => {});
     } catch (e) { console.warn('music unavailable', e); }
     loading = false;
   }
@@ -487,7 +522,23 @@ const music = (() => {
   }
   function toggle() { muted = !muted; try { localStorage.setItem('sk_music', muted ? 'off' : 'on'); } catch (e) {} if (bus) bus.gain.setTargetAtTime(muted ? 0 : SET.music * 0.07, sfx.ctx.currentTime, 0.2); return !muted; }
   function setVol() { if (bus) bus.gain.setTargetAtTime(muted ? 0 : SET.music * 0.07, sfx.ctx.currentTime, 0.1); }
-  async function reload() { if (!started) return start(); const old = bus; for (const s of srcs) { try { s.stop(); } catch (e) {} } if (old) old.disconnect(); started = false; stingBuf = null; await start(); }
+  let reloadQ = false;
+  async function reload() {
+    if (loading) { reloadQ = true; return; }
+    if (started) {
+      for (const s of srcs) { try { s.stop(); s.disconnect(); } catch (e) {} }
+      for (const k in gains) { try { gains[k].disconnect(); } catch (e) {} }
+      if (bus) { try { bus.disconnect(); } catch (e) {} }
+      srcs = []; gains = {}; bus = null; stingBuf = null; started = false;
+      await new Promise((r) => setTimeout(r, 400)); // let the old music be freed before loading the new one
+    }
+    try { await start(); } catch (e) { console.warn('music reload failed', e); }
+    if (reloadQ) { reloadQ = false; reload(); }
+  }
+  async function decodeLow(ac, ab) {
+    try { const oc = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(2, 1, 32000); return await oc.decodeAudioData(ab); }
+    catch (e) { return ac.decodeAudioData(ab); }
+  }
   function sting() { netEv('s'); if (!stingBuf || !bus) return; const ac = sfx.ctx; const s = ac.createBufferSource(); s.buffer = stingBuf; const g = ac.createGain(); g.gain.value = 0.9; s.connect(g); g.connect(bus); s.start(); }
   return { start, set, toggle, setVol, sting, reload, get muted() { return muted; } };
 })();
@@ -583,6 +634,31 @@ function tintMaterials(root, paint, hazard, extraRust) {
   return [...cache.values()];
 }
 
+// exhaust tips per rig, in model (Blender) coords: [x, y fwd, z up, dx, dy, dz]; mirrored to both sides
+const EXH = {
+  juggernaut: [[1.18, 0.1, 3.48, 0, -0.2, 1]],
+  raider: [[0.5, -2.31, 0.98, 0, -1, 0.05]],
+  scrapper: [[0.77, 0.38, 0.5, 0.5, -0.8, -0.2], [0.77, 0.58, 0.5, 0.5, -0.8, -0.2], [0.77, 0.78, 0.5, 0.5, -0.8, -0.2], [0.77, 0.98, 0.5, 0.5, -0.8, -0.2]],
+  widowmaker: [[1.11, -0.01, 0.4, 0.55, -0.8, -0.15], [1.11, 0.23, 0.4, 0.55, -0.8, -0.15], [1.11, 0.47, 0.4, 0.55, -0.8, -0.15], [1.11, 0.71, 0.4, 0.55, -0.8, -0.15]],
+  blackhorn: [[1.08, -1.27, 0.97, 0, -1, 0]],
+  warwagon: [[0.72, -1.55, 3.4, 0, -0.18, 1]],
+};
+const _ep = new THREE.Vector3(), _ed = new THREE.Vector3();
+function nitroFlames(v, vel) {
+  const list = EXH[v.type]; if (!list) return;
+  v.model.updateWorldMatrix(true, false);
+  const n = list.length * 2, per = n >= 6 ? 2 : 3;
+  for (const t of list) for (const sx of [-1, 1]) {
+    const p = v.model.localToWorld(_ep.set(sx * t[0], t[2], -t[1])).clone();
+    const d = _ed.set(sx * t[3], t[5], -t[4]).transformDirection(v.model.matrixWorld).clone();
+    for (let i = 0; i < per; i++) {
+      const sp = d.clone().multiplyScalar(rnd(9, 15)).add(V3(rnd(-0.6, 0.6), rnd(0.1, 0.8), rnd(-0.6, 0.6)));
+      if (vel) sp.addScaledVector(vel, 0.85);
+      emit(PS_ADD, p.clone().addScaledVector(d, rnd(0, 0.3)), sp, rnd(0.16, 0.3), rnd(0.9, 1.3), rnd(0.2, 0.45), i ? COL.fire : COL.flameCore, 1, COL.fire2, 0, -2);
+    }
+    if (Math.random() < 0.5) emit(PS_NORM, p, d.clone().multiplyScalar(4).add(V3(0, 1.5, 0)).addScaledVector(vel || V3(), 0.7), rnd(0.5, 0.9), 0.5, 2.2, COL.smoke, 0.25, COL.smoke2, 0);
+  }
+}
 class Vehicle {
   constructor(type, load, isPlayer = false, paint = null) {
     this.type = type; this.cfg = CFG[type]; this.load = load; this.isPlayer = isPlayer;
@@ -592,7 +668,7 @@ class Vehicle {
     scene.add(this.root);
     const g = (n) => this.model.getObjectByName(n);
     this.wheels = ['Wheel_FL', 'Wheel_FR', 'Wheel_ML', 'Wheel_MR', 'Wheel_RL', 'Wheel_RR'].map(g).filter(Boolean);
-    this.wheels.forEach((w) => { w.rotation.order = 'YXZ'; w.userData.front = /F[LR]$/.test(w.name); w.userData.r = type === 'juggernaut' ? 0.62 : type === 'raider' ? 0.48 : type === 'widowmaker' ? (w.userData.front ? 0.36 : 0.42) : (w.userData.front ? 0.42 : 0.52); w.userData.home = { p: w.position.clone(), q: w.quaternion.clone(), parent: w.parent }; });
+    this.wheels.forEach((w) => { w.rotation.order = 'YXZ'; w.userData.front = /F[LR]$/.test(w.name); { const bb = new THREE.Box3().setFromObject(w); w.userData.r = Math.max(0.2, (bb.max.y - bb.min.y) / 2); } w.userData.home = { p: w.position.clone(), q: w.quaternion.clone(), parent: w.parent }; });
     // armor
     const tiers = ARMORS[load.armor].tiers;
     this.pieces = [];
@@ -606,6 +682,8 @@ class Vehicle {
     }
     // ram
     for (const n of ['Ram_Spike', 'Ram_Saw', 'Ram_SawRear']) { const o = g(n); const keep = (load.ram === 'spike' && n === 'Ram_Spike') || (load.ram === 'saw' && n.startsWith('Ram_Saw')); if (o && !keep) o.removeFromParent(); }
+    { const ring = []; this.model.traverse((o) => { if (/^Ram_Spike(Ring|Hub)/.test(o.name)) ring.push(o); }); if (load.ram !== 'spike') ring.forEach((o) => o.removeFromParent()); }
+    this.spikeRing = load.ram === 'spike';
     this.blades = [g('Ram_SawBlade_L'), g('Ram_SawBlade_R'), g('Ram_SawRearBlade_L'), g('Ram_SawRearBlade_R')].filter((o) => o && load.ram === 'saw');
     this.rearSaw = load.ram === 'saw';
     this.team = isPlayer ? 'p' : 'e';
@@ -696,7 +774,7 @@ class Vehicle {
     // vertical
     const g = height(this.pos.x, this.pos.z);
     if (this.air) { this.vy -= 24 * dt; this.y += this.vy * dt; if (this.y <= g) { if (this.vy < -9) { shake(0.25, this.pos); dustBurst(this, 20); if (this.isPlayer) rumble(0.7, 0.4, 160); } this.svy += this.vy * 0.35; this.y = g; this.vy = 0; this.air = false; } }
-    else { const pred = this.y + this.vy * dt; if ((g < pred - 0.08 && this.vy > 2.5) || g < this.y - 1.4) { this.air = true; this.y = pred; this.vy = Math.min(this.vy, 0.5); } else { this.vy = clamp((g - this.y) / dt, -30, 30); this.y = g; } }
+    else { const pred = this.y + this.vy * dt; if ((g < pred - 0.08 && this.vy > 2.5) || g < this.y - 1.4) { this.air = true; this.y = pred; this.vy = this.vy > 6 ? this.vy * 1.05 + 1 : Math.min(this.vy, 0.5); if (this.vy > 6) this.jumpT = 0; } else { this.vy = clamp((g - this.y) / dt, -30, 30); this.y = g; } }
     const accL = (vF - this.prevVF) / Math.max(dt, 1e-3); this.prevVF = vF;
     const yawRate = -inp.steer * c.turn * clamp(Math.abs(vF) / 7, 0, 1) * Math.sign(vF || 1);
     const tP = this.air ? 0 : clamp(-accL * 0.0045, -0.07, 0.06), tR = this.air ? 0 : clamp(vF * yawRate * 0.0065, -0.085, 0.085);
@@ -726,7 +804,7 @@ class Vehicle {
       }
     }
     if (this.drifting && !this.air && Math.abs(vR) > 3) for (const s of [-1, 1]) { const p = this.root.localToWorld(tmpV2.set(s * this.box.hx * 0.85, 0.35, -this.box.hz * 0.6)).clone(); emit(PS_NORM, p, V3(rnd(-1.5, 1.5), rnd(1, 2.5), rnd(-1.5, 1.5)).addScaledVector(this.vel, -0.1), rnd(1.4, 2.4), 1.2, rnd(6, 9), COL.dust2, 0.42, COL.smoke2, 0, -0.4, 1.4); }
-    if (nit) { for (const sd of (this.box.hx > 1.4 ? [-0.45, 0.45] : [0])) { const p = this.root.localToWorld(tmpV2.set(sd, 0.85, -this.box.hz * 0.98)).clone(); const back = this.fwd.clone().multiplyScalar(-1); for (let i = 0; i < 3; i++) emit(PS_ADD, p.clone().addScaledVector(back, rnd(0, 0.3)), back.clone().multiplyScalar(rnd(9, 15)).add(V3(rnd(-0.6, 0.6), rnd(0.2, 1.2), rnd(-0.6, 0.6))).addScaledVector(this.vel, 0.85), rnd(0.18, 0.32), rnd(0.9, 1.3), rnd(0.2, 0.5), i ? COL.fire : COL.flameCore, 1, COL.fire2, 0, -2); emit(PS_NORM, p, back.clone().multiplyScalar(4).add(V3(0, 1.5, 0)).addScaledVector(this.vel, 0.7), rnd(0.5, 0.9), 0.5, 2.2, COL.smoke, 0.25, COL.smoke2, 0); }
+    if (nit) { nitroFlames(this, this.vel);
       if (Math.random() < 0.3) flash(this.root.localToWorld(tmpV2.set(0, 1, -this.box.hz - 1)).clone(), 18, 0.06, '#ff8a30'); }
     if (this.hp < this.hpMax * 0.35 && Math.random() < 0.4) { const p = this.root.localToWorld(tmpV2.set(rnd(-0.5, 0.5), this.box.hy * 0.6, this.box.hz * 0.5)).clone(); emit(PS_NORM, p, V3(rnd(-0.5, 0.5), rnd(2, 4), rnd(-0.5, 0.5)), rnd(1.5, 2.5), 0.8, 3.2, COL.smoke, 0.35, COL.smoke2, 0, -0.5); }
     // weapon cooling
@@ -770,8 +848,9 @@ class Vehicle {
     return this.wGun.localToWorld(V3(0, 0.13, -1.4));
   }
   // --------------------------------------------------------- damage
-  damage(amount, at, dir, src) {
+  damage(amount, at, dir, src, kind) {
     if (!this.alive || NET.role === 'guest') return;
+    { const r = ARMORS[this.load.armor] && ARMORS[this.load.armor].resist; if (r && kind && r[kind]) amount *= r[kind]; }
     if (src && src !== this && src.team === this.team) return; // no friendly fire
     if (this.isPlayer && src !== this) amount *= D().dmg * this.mods.taken;
     this.dmgTaken = (this.dmgTaken || 0) + amount;
@@ -856,7 +935,7 @@ class Vehicle {
         if (v === this || !v.alive || v.team === this.team) continue;
         const to = v.root.position.clone().add(V3(0, v.box.hy * 0.4, 0)).sub(p); const L = to.length(); if (L > R + v.cfg.r) continue;
         if (to.normalize().dot(d) < cosA - v.cfg.r / Math.max(L, 1) * 0.5) continue;
-        v.damage((this.isPlayer ? 34 : 10) * this.mods.gun * dt, null, d, this); v.burn = Math.max(v.burn || 0, 2.6); v.burnSrc = this;
+        v.damage((this.isPlayer ? 34 : 10) * this.mods.gun * dt, null, d, this, 'fire'); v.burn = Math.max(v.burn || 0, 2.6); v.burnSrc = this;
         if (this.isPlayer && Math.random() < 0.1) hitMarker();
       }
       for (const pr of props) { if (!pr.alive || pr.kind === 'tires') continue; const to = V3(pr.x - p.x, 0, pr.z - p.z); const L = to.length(); if (L > R || to.normalize().dot(V3(d.x, 0, d.z).normalize()) < cosA) continue; pr.hp = (pr.hp || 6) - 30 * dt; if (pr.hp <= 0) breakProp(pr, this); }
@@ -876,7 +955,7 @@ class Vehicle {
       if (this.isPlayer) { combatHeat = game.t; shake(0.12); rumble(0.35, 0.3, 110); }
     } else {
       const H = this.harp;
-      if (press && H.state === 'ready') launchHarpoon(this);
+      if (press && H.state === 'ready') launchHarpoon(this, target);
       else if (press && H.state === 'hooked') releaseHarpoon(this, false);
     }
   }
@@ -916,7 +995,7 @@ function updateBullets(dt) {
       const t = segBox(v, p0, b.p);
       if (t >= 0) {
         const hp = p0.clone().lerp(b.p, t);
-        v.damage(b.dmg, hp, b.v.clone().normalize(), b.owner);
+        v.damage(b.dmg, hp, b.v.clone().normalize(), b.owner, 'gun');
         sparks(hp, b.v.clone().normalize().negate(), 5); sfx.hit();
         if (b.owner.isPlayer) hitMarker();
         hit = true; break;
@@ -977,7 +1056,7 @@ function rocketBlast(pos, owner) {
     if (!v.alive || v.team === owner.team) continue;
     const c = v.root.position.clone().add(V3(0, v.box.hy * 0.4, 0)); const d = c.distanceTo(pos); if (d > R) continue;
     const k = 1 - d / R; const dir = c.clone().sub(pos).setY(0).normalize();
-    v.damage((owner.isPlayer ? 62 : 26) * owner.mods.gun * Math.pow(k, 0.7), pos, dir, owner);
+    v.damage((owner.isPlayer ? 62 : 26) * owner.mods.gun * Math.pow(k, 0.7), pos, dir, owner, 'blast');
     v.vel.addScaledVector(dir, 14 * k / v.mass); v.yawV = clamp(v.yawV + rnd(-1.5, 1.5) * k, -2.5, 2.5);
     if (k > 0.45 && !v.air) { v.air = true; v.vy = 4 + 5 * k / v.mass; }
   }
@@ -990,9 +1069,12 @@ function clearRockets() { for (const r of rockets) r.m.removeFromParent(); rocke
 // ============================================================ harpoon
 const cableMat = new THREE.MeshStandardMaterial({ color: '#2a2622', metalness: 0.8, roughness: 0.4 });
 const cableGeo = new THREE.CylinderGeometry(0.035, 0.035, 1, 6); cableGeo.rotateX(Math.PI / 2); cableGeo.translate(0, 0, 0.5);
-function launchHarpoon(v) {
+function launchHarpoon(v, lock = null) {
   const H = v.harp; const d = v.gunDir(); const p = v.muzzlePos();
   H.state = 'flying'; H.t = 0; H.p = p.clone(); H.v = d.multiplyScalar(95).add(V3(0, 1.5, 0)); H.target = null;
+  // locked on (red ring): the bolt homes in and always hooks
+  H.lock = lock && lock.alive && lock.team !== v.team && lock.pos.distanceTo(v.pos) < 110 ? lock : null;
+  if (H.lock) H.v = H.lock.root.position.clone().add(V3(0, H.lock.box.hy * 0.5, 0)).sub(p).normalize().multiplyScalar(110);
   H.proj = v.bolt.clone(); scene.add(H.proj); v.bolt.visible = false;
   H.cable = H.cable || new THREE.Mesh(cableGeo, cableMat); H.cable.visible = true; scene.add(H.cable);
   sfx.harpoon(); shake(0.12);
@@ -1014,23 +1096,30 @@ function updateHarpoon(v, dt) {
   if (!v.alive && H.state !== 'reload') releaseHarpoon(v);
   const start = v.guns.harpoon.gun.localToWorld(V3(0, 0.13, -1.4));
   if (H.state === 'flying') {
-    H.t += dt; const p0 = H.p.clone(); H.v.y -= 9 * dt; H.p.addScaledVector(H.v, dt);
+    H.t += dt; const p0 = H.p.clone();
+    const L = H.lock && H.lock.alive ? H.lock : null;
+    if (L) { const aim = L.root.position.clone().add(V3(0, L.box.hy * 0.5, 0)); H.v.copy(aim.sub(H.p).normalize().multiplyScalar(Math.max(110, H.v.length()))); }
+    else H.v.y -= 9 * dt;
+    H.p.addScaledVector(H.v, dt);
+    // guaranteed hit: if the homing bolt reaches its target without the box test catching it, hook it anyway
+    if (L && H.p.distanceTo(L.root.position.clone().add(V3(0, L.box.hy * 0.5, 0))) < Math.max(L.box.hx, L.box.hz) + 1.2) H.forceHit = L;
     H.proj.position.copy(H.p); H.proj.lookAt(tmpV.copy(H.p).sub(H.v)); // bolt points -Z
     for (const t of vehicles) {
       if (t === v || !t.alive || t.team === v.team) continue; if (t.pos.distanceToSquared(H.p) > 400) continue;
-      const k = segBox(t, p0, H.p);
+      let k = segBox(t, p0, H.p);
+      if (k < 0 && H.forceHit === t) k = 1;
       if (k >= 0) {
-        const hp = p0.clone().lerp(H.p, k);
+        const hp = H.forceHit === t ? t.root.position.clone().add(V3(0, t.box.hy * 0.55, 0)).lerp(p0, 0.15) : p0.clone().lerp(H.p, k); H.forceHit = null; H.lock = null;
         H.state = 'hooked'; H.target = t; H.t = 0; H.rip = 0;
         H.anchor = new THREE.Object3D(); t.root.add(H.anchor); t.root.worldToLocal(H.anchor.position.copy(hp));
         H.proj.removeFromParent(); H.anchor.add(H.proj); H.proj.position.set(0, 0, 0); H.proj.quaternion.copy(t.root.getWorldQuaternion(tmpQ).invert().multiply(H.proj.quaternion));
         H.rest = start.distanceTo(hp) + 1.5;
-        t.damage(14, hp, H.v.clone().normalize(), v); sparks(hp, V3(0, 1, 0), 12); sfx.clang();
+        t.damage(14, hp, H.v.clone().normalize(), v, 'gun'); sparks(hp, V3(0, 1, 0), 12); sfx.clang();
         if (v.isPlayer) { toast('Harpoon', 'HOOKED ' + t.cfg.name); rumble(0.6, 0.5, 150); }
         break;
       }
     }
-    if (H.state === 'flying' && (H.t > 0.9 || H.p.y < height(H.p.x, H.p.z))) releaseHarpoon(v);
+    if (H.state === 'flying' && (H.t > (H.lock ? 1.6 : 0.9) || (!H.lock && H.p.y < height(H.p.x, H.p.z)))) releaseHarpoon(v);
   } else if (H.state === 'hooked') {
     const t = H.target; H.t += dt;
     if (!t || !t.alive || H.t > 7) { releaseHarpoon(v); }
@@ -1187,14 +1276,17 @@ function toast(small, big, salv = false) {
 let hitT = 0; function hitMarker() { hitT = 0.12; }
 const OPTS = [
   { key: 'mode', label: 'Mode', list: ['waves', 'escape'], name: (v) => (v === 'waves' ? 'WAVE MODE' : 'CH 1: ESCAPE') },
-  { key: 'type', label: 'Vehicle', list: ['juggernaut', 'raider', 'scrapper', 'widowmaker'], name: (v) => CFG[v].name },
+  { key: 'time', label: 'Time', list: ['day', 'sunrise', 'sunset', 'night'], name: (v) => v.toUpperCase() },
+  { key: 'type', label: 'Vehicle', list: ['juggernaut', 'raider', 'scrapper', 'widowmaker', 'blackhorn', 'warwagon'], name: (v) => CFG[v].name },
   { key: 'weapon', label: 'Main gun', list: ['cannon', 'rockets', 'flamer'], name: (v) => WEAPONS[v].name },
-  { key: 'ram', label: 'Front ram', list: ['spike', 'saw', 'none'], name: (v) => RAMS[v].name },
-  { key: 'armor', label: 'Armor', list: ['light', 'scrap', 'heavy'], name: (v) => ARMORS[v].name },
+  { key: 'ram', label: 'Ram', list: ['spike', 'saw', 'none'], name: (v) => RAMS[v].name },
+  { key: 'armor', label: 'Armor', list: ARMOR_TYPES, name: (v) => ARMORS[v].name },
 ];
-const load = { mode: 'waves', type: 'juggernaut', weapon: 'cannon', ram: 'spike', armor: 'heavy' };
+const load = { mode: 'waves', time: 'day', type: 'juggernaut', weapon: 'cannon', ram: 'spike', armor: 'ballistic' };
 try { const s = JSON.parse(localStorage.getItem('sk_load') || 'null'); if (s) Object.assign(load, s); } catch (e) {}
+if (!ARMOR_TYPES.includes(load.armor)) load.armor = 'ballistic';
 if (!CFG[load.type]) load.type = 'juggernaut';
+if (!['day', 'sunrise', 'sunset', 'night'].includes(load.time)) load.time = 'day';
 if (!['cannon', 'rockets', 'flamer'].includes(load.weapon)) load.weapon = 'cannon';
 let selRow = 0;
 function buildGarageUI() {
@@ -1212,16 +1304,16 @@ function buildGarageUI() {
   });
   const o = OPTS[selRow]; const k = load[o.key];
   $('go').firstChild.textContent = load.mode === 'escape' ? 'START CHAPTER 1: ESCAPE' : 'HIT THE PROVING GROUND';
-  $('blurb').textContent = o.key === 'mode' ? (k === 'waves' ? 'Endless raider waves in the proving ground. Upgrade between waves. Free.' : 'Chapter 1. Night falls, a storm rolls in, raiders on your tail and one bridge out. About 5 minutes.') : o.key === 'type' ? CFG[k].blurb : o.key === 'weapon' ? WEAPONS[k].blurb + ' Every rig also carries a harpoon. Swap to it with the D-pad.' : o.key === 'ram' ? RAMS[k].blurb : ARMORS[k].blurb;
+  $('blurb').textContent = o.key === 'time' ? ({ day: 'High sun over the proving ground.', sunrise: 'First light. Long shadows and a cold orange sky.', sunset: 'The sun goes down red over the dunes.', night: 'Moon, stars and your headlights. Raiders run with their lights on. Chapter 1 is always at night.' })[k] : o.key === 'mode' ? (k === 'waves' ? 'Endless raider waves in the proving ground. Upgrade between waves. Free.' : 'Chapter 1. Night falls, a storm rolls in, raiders on your tail and one bridge out. About 5 minutes.') : o.key === 'type' ? CFG[k].blurb : o.key === 'weapon' ? WEAPONS[k].blurb + ' Every rig also carries a harpoon. Swap to it with the D-pad.' : o.key === 'ram' ? RAMS[k].blurb : ARMORS[k].blurb;
   const c = CFG[load.type], a = ARMORS[load.armor];
-  const armorPts = { light: 0, scrap: 1, heavy: 2 }[load.armor];
+  const armorPts = a.tiers;
   const nPieces = armorPts === 0 ? 0 : (TEMPL[load.type] ? countPieces(load.type, armorPts) : 0);
   const armorHP = nPieces * (armorPts === 2 ? 48 : 40);
   const stats = [
     ['Hull', c.hp, 260, c.hp], ['Armor', armorHP, 520, armorHP],
     ['Top speed', Math.round(c.max * a.speed * 2.237), 105, Math.round(c.max * a.speed * 2.237) + ''],
     ['Handling', Math.round(c.turn * c.grip * 10), 200, Math.round(c.turn * c.grip * 10)],
-    ['Ram power', Math.round(RAMS[load.ram].mult * c.mass * 30 + RAMS[load.ram].grind), 190, Math.round(RAMS[load.ram].mult * c.mass * 30 + RAMS[load.ram].grind)],
+    ['Ram power', Math.round(RAMS[load.ram].mult * c.mass * 30 * (c.ramMul || 1) + RAMS[load.ram].grind), 190, Math.round(RAMS[load.ram].mult * c.mass * 30 * (c.ramMul || 1) + RAMS[load.ram].grind)],
     ['Firepower', WEAPONS[load.weapon].dps, 70, WEAPONS[load.weapon].dps],
   ];
   const st = $('stats'); st.innerHTML = '';
@@ -1231,6 +1323,7 @@ function countPieces(type, tier) { let n = 0; TEMPL[type].traverse((o) => { if (
 function cycle(i, d) {
   const o = OPTS[i]; const L = o.list; load[o.key] = L[(L.indexOf(load[o.key]) + d + L.length) % L.length];
   try { localStorage.setItem('sk_load', JSON.stringify(load)); } catch (e) {}
+  if (o.key === 'time') applyTime(load.time);
   buildGarageUI(); spawnGarageRig();
 }
 $('go').onclick = () => (trained() ? startCombat(load.mode) : askTraining());
@@ -1329,8 +1422,16 @@ const UPG_CLASS = {
     { id: 'spot', name: 'SPOTTER', text: 'Raider only. Main gun damage +15% and the harpoon reloads in half the time.', apply: (v) => { v.mods.gun *= 1.15; v.mods.harpReload *= 0.5; } },
   ],
   scrapper: [
-    { id: 'ghost', name: 'GHOST', text: 'Scrapper only. Nitro burns 35% slower.', apply: (v) => { v.mods.drain *= 0.65; } },
-    { id: 'hitrun', name: 'HIT AND RUN', text: 'Scrapper only. Rams on nitro deal double damage.', apply: (v) => { v.mods.nitroRam *= 2; } },
+    { id: 'ghost', name: 'GHOST', text: 'Deuce only. Nitro burns 35% slower.', apply: (v) => { v.mods.drain *= 0.65; } },
+    { id: 'hitrun', name: 'HIT AND RUN', text: 'Deuce only. Rams on nitro deal double damage.', apply: (v) => { v.mods.nitroRam *= 2; } },
+  ],
+  blackhorn: [
+    { id: 'wball', name: 'WRECKING BALL', text: 'Blackhorn only. Rams hit 25% harder and throw rigs twice as far.', apply: (v) => { v.mods.ram *= 1.25; v.mods.knock *= 2; } },
+    { id: 'bigblock', name: 'BIG BLOCK', text: 'Blackhorn only. Top speed +8% and nitro refills 40% faster.', apply: (v) => { v.maxSpeed *= 1.08; v.mods.nitroRegen += 4; } },
+  ],
+  warwagon: [
+    { id: 'torque', name: 'DIESEL TORQUE', text: 'Warwagon only. 25% quicker off the line and rams hit 20% harder.', apply: (v) => { v.accel *= 1.25; v.mods.ram *= 1.2; } },
+    { id: 'winch', name: 'WINCH LINE', text: 'Warwagon only. Harpoon reels in twice as fast and 10% less damage taken.', apply: (v) => { v.mods.reel *= 2; v.mods.taken *= 0.9; } },
   ],
   widowmaker: [
     { id: 'v8', name: 'BIG BLOCK V8', text: 'Widowmaker only. Top speed +12%.', apply: (v) => { v.maxSpeed *= 1.12; } },
@@ -1418,7 +1519,7 @@ function placeWrecksRaw() {
   for (let i = 0; i < 9; i++) {
     const t = types[i % 3]; const b = TEMPL[t].getObjectByName('Body').clone(true);
     b.traverse((o) => { if (o.isMesh) { o.material = burnt; o.castShadow = o.receiveShadow = true; } });
-    const a = rnd(0, 6.28), d = rnd(35, ARENA - 20), x = Math.cos(a) * d, z = Math.sin(a) * d;
+    let a, d, x, z, tries = 0; do { a = rnd(0, 6.28); d = rnd(35, ARENA - 20); x = Math.cos(a) * d; z = Math.sin(a) * d; } while (onRamp(x, z, 6) && ++tries < 30);
     const g = new THREE.Group(); g.add(b); b.rotation.y = Math.PI;
     g.position.set(x, height(x, z) - 0.45, z); g.rotation.set(rnd(-0.15, 0.15), rnd(0, 6.28), rnd(-0.4, 0.4) + (Math.random() < 0.3 ? Math.PI * 0.5 : 0));
     arenaGroup.add(g); wrecks.push(g); STATIC.push({ x, z, r: CFG[t].r * 1.1 });
@@ -1447,8 +1548,8 @@ function spawnWave() {
   const n = clamp(Math.min(2 + game.wave, 7) + D().count, 1, 8);
   const wc = $('wavecall'); wc.textContent = 'WAVE ' + game.wave; wc.style.opacity = 1; setTimeout(() => (wc.style.opacity = 0), 1800);
   for (let i = 0; i < n; i++) {
-    const type = game.wave >= 3 && i === 0 ? 'juggernaut' : game.wave >= 2 && Math.random() < 0.18 ? 'widowmaker' : Math.random() < 0.55 ? 'raider' : 'scrapper';
-    const lo = { type, weapon: type === 'scrapper' ? (Math.random() < 0.3 ? 'cannon' : 'harpoon') : 'cannon', ram: Math.random() < 0.6 ? 'spike' : 'saw', armor: game.wave === 1 ? 'scrap' : Math.random() < 0.5 ? 'heavy' : 'scrap' };
+    const type = game.wave >= 3 && i === 0 ? 'juggernaut' : game.wave >= 2 && Math.random() < 0.18 ? (['widowmaker', 'blackhorn', 'warwagon'][Math.floor(Math.random() * 3)]) : Math.random() < 0.55 ? 'raider' : 'scrapper';
+    const lo = { type, weapon: type === 'scrapper' ? (Math.random() < 0.3 ? 'cannon' : 'harpoon') : 'cannon', ram: Math.random() < 0.6 ? 'spike' : 'saw', armor: rndArmor() };
     if (lo.weapon === 'harpoon') lo.weapon = 'cannon';
     if (type === 'juggernaut' && Math.random() < 0.6) lo.weapon = 'rockets';
     if (type === 'raider' && game.wave >= 3 && Math.random() < 0.3) lo.weapon = 'flamer';
@@ -1515,7 +1616,7 @@ function collisions(dt) {
     for (const s of STATIC) {
       if (Math.abs(a.pos.x - s.x) > 14 || Math.abs(a.pos.z - s.z) > 14) continue;
       const dx = a.pos.x - s.x, dz = a.pos.z - s.z, d = Math.hypot(dx, dz), m = a.cfg.r * 0.85 + s.r;
-      if (d < m && d > 0.001) { const nx = dx / d, nz = dz / d; a.pos.x += nx * (m - d); a.pos.z += nz * (m - d); const vn = a.vel.x * nx + a.vel.z * nz; if (vn < 0) { a.vel.x -= nx * vn * 1.4; a.vel.z -= nz * vn * 1.4; if (vn < -12 && a.alive) { a.damage(-vn * 0.8, null, null, null); sparks(a.root.position.clone().add(V3(0, 1, 0)), V3(nx, 0.5, nz), 10); shake(0.3, a.pos); sfx.clang(); } } }
+      if (d < m && d > 0.001) { const nx = dx / d, nz = dz / d; a.pos.x += nx * (m - d); a.pos.z += nz * (m - d); const vn = a.vel.x * nx + a.vel.z * nz; if (vn < 0) { a.vel.x -= nx * vn * 1.4; a.vel.z -= nz * vn * 1.4; if (vn < -12 && a.alive) { a.damage(-vn * 0.8, null, null, null, 'ram'); sparks(a.root.position.clone().add(V3(0, 1, 0)), V3(nx, 0.5, nz), 10); shake(0.3, a.pos); sfx.clang(); } } }
     }
     for (let j = i + 1; j < vehicles.length; j++) {
       const b = vehicles[j];
@@ -1540,17 +1641,20 @@ function collisions(dt) {
           hitCD.set(key, now);
           const close = -rv; const cf = close <= 18 ? close : 18 + (close - 18) * 0.35;
           const fa = Math.sin(a.h) * nx + Math.cos(a.h) * nz, fb = -(Math.sin(b.h) * nx + Math.cos(b.h) * nz);
-          const rm = (v) => v.mods.ram * (v.nitOn ? v.mods.nitroRam : 1);
+          const rm = (v) => v.mods.ram * (v.cfg.ramMul || 1) * (v.nitOn ? v.mods.nitroRam : 1);
           const dmgToB = cf * (fa > 0.55 ? a.ram.mult * a.mass * 1.3 * rm(a) : 0.35 * a.mass * (a.drifting ? a.mods.swipe : 1));
           const dmgToA = cf * (fb > 0.55 ? b.ram.mult * b.mass * 1.3 * rm(b) : 0.35 * b.mass * (b.drifting ? b.mods.swipe : 1));
           if (fa > 0.55 && a.mods.knock > 1) { b.vel.x += nx * close * 0.35 * (a.mods.knock - 1); b.vel.z += nz * close * 0.35 * (a.mods.knock - 1); }
           if (fb > 0.55 && b.mods.knock > 1) { a.vel.x -= nx * close * 0.35 * (b.mods.knock - 1); a.vel.z -= nz * close * 0.35 * (b.mods.knock - 1); }
           if (a.isPlayer && fa > 0.55 && close > 7) b.rammedByPlayer = true;
           if (b.isPlayer && fb > 0.55 && close > 7) a.rammedByPlayer = true;
-          if (a.rearSaw && fa < -0.55 && a.alive) b.damage(cf * 1.3 * (b.isPlayer ? 0.5 : 1), cp, V3(nx, 0, nz), a);
-          if (b.rearSaw && fb < -0.55 && b.alive) a.damage(cf * 1.3 * (a.isPlayer ? 0.5 : 1), cp, V3(-nx, 0, -nz), b);
-          if (a.alive) b.damage(dmgToB * (b.isPlayer ? 0.5 : 1), cp, V3(nx, 0, nz), a);
-          if (b.alive) a.damage(dmgToA * (a.isPlayer ? 0.5 : 1), cp, V3(-nx, 0, -nz), b);
+          if (a.rearSaw && fa < -0.55 && a.alive) b.damage(cf * 1.3 * (b.isPlayer ? 0.5 : 1), cp, V3(nx, 0, nz), a, 'ram');
+          if (b.rearSaw && fb < -0.55 && b.alive) a.damage(cf * 1.3 * (a.isPlayer ? 0.5 : 1), cp, V3(-nx, 0, -nz), b, 'ram');
+          // spikes all round: touching a spiked rig's sides or tail hurts
+          if (a.spikeRing && fa <= 0.55 && a.alive) { b.damage(cf * 0.9 * a.mods.ram * (b.isPlayer ? 0.5 : 1), cp, V3(nx, 0, nz), a, 'ram'); sparks(cp, V3(0, 1, 0), 6); }
+          if (b.spikeRing && fb <= 0.55 && b.alive) { a.damage(cf * 0.9 * b.mods.ram * (a.isPlayer ? 0.5 : 1), cp, V3(-nx, 0, -nz), b, 'ram'); sparks(cp, V3(0, 1, 0), 6); }
+          if (a.alive) b.damage(dmgToB * (b.isPlayer ? 0.5 : 1), cp, V3(nx, 0, nz), a, 'ram');
+          if (b.alive) a.damage(dmgToA * (a.isPlayer ? 0.5 : 1), cp, V3(-nx, 0, -nz), b, 'ram');
           sparks(cp, V3(0, 1, 0), Math.min(30, close * 2)); sfx.clang(); shake(Math.min(0.6, close * 0.03), cp);
           if (close > 12) flash(cp, 40, 0.1, '#ffd090');
         }
@@ -1558,7 +1662,7 @@ function collisions(dt) {
       // saw grind, front and rear
       for (const [x, y, sgn] of [[a, b, 1], [b, a, -1]]) {
         if (!x.alive || !x.ram.grind) continue; const f = sgn * (Math.sin(x.h) * nx + Math.cos(x.h) * nz);
-        if (f > 0.55 || (x.rearSaw && f < -0.55)) { y.damage(x.ram.grind * x.mods.ram * dt, cp, V3(nx * sgn, 0, nz * sgn), x); if (Math.random() < 0.6) sparks(cp, V3(0, 1, 0), 3); }
+        if (f > 0.55 || (x.rearSaw && f < -0.55)) { y.damage(x.ram.grind * x.mods.ram * dt, cp, V3(nx * sgn, 0, nz * sgn), x, 'ram'); if (Math.random() < 0.6) sparks(cp, V3(0, 1, 0), 3); }
       }
     }
   }
@@ -1667,6 +1771,8 @@ function tick() {
   requestAnimationFrame(tick);
 }
 function fxStep(dt) {
+  if (ESC.sky.visible) ESC.sky.position.copy(camera.position);
+  if (headL.intensity > 0 && player) { player.root.localToWorld(headL.position.set(0, 1.2, player.box.hz * 0.9)); player.root.localToWorld(headL.target.position.set(0, -0.5, player.box.hz + 34)); headL.target.updateMatrixWorld(); }
   // effects always
   for (const f of flashes) { if (f.t > 0) { f.t -= dt; f.l.intensity = Math.max(0, f.t / f.l.userData.d) * f.l.userData.p; } else f.l.intensity = 0; }
   for (const v of vehicles) if (v.burn > 0) { v.burn -= dt; if (Math.random() < 0.7) { const p = v.root.position.clone().add(V3(rnd(-0.8, 0.8), 1.4, rnd(-0.8, 0.8))); emit(PS_ADD, p, V3(rnd(-0.5, 0.5), rnd(2, 4), rnd(-0.5, 0.5)), rnd(0.4, 0.8), 1.2, 2.6, COL.fire, 0.8, COL.fire2, 0); emit(PS_NORM, p.add(V3(0, 1, 0)), V3(rnd(-0.6, 0.6), rnd(3, 5), rnd(-0.6, 0.6)), rnd(2, 3.5), 1.2, 4.5, COL.smoke, 0.32, COL.smoke2, 0); } }
@@ -1745,7 +1851,7 @@ function combatStep(dt, P) {
     else { v.update(dt, v.alive ? aiInput(v, dt) : {}); if (v.alive) aiShoot(v, dt); }
     updateHarpoon(v, dt);
   }
-  for (const v of vehicles) if (v.alive && v.burn > 0 && v.burnSrc) { v.damage(9 * dt, null, null, v.burnSrc); if (v.burn <= dt) v.burnSrc = null; }
+  for (const v of vehicles) if (v.alive && v.burn > 0 && v.burnSrc) { v.damage(9 * dt, null, null, v.burnSrc, 'fire'); if (v.burn <= dt) v.burnSrc = null; }
   collisions(dt); propCollisions();
   updateBullets(dt); updateRockets(dt); updateDebris(dt);
 
@@ -1840,7 +1946,7 @@ const ESC = {
   ramps: [[400, 4, 16, 9, 3.2], [900, -8, 16, 9, 3.2], [1300, 0, 18, 11, 4.2], [1420, -40, 18, 10, 4], [1500, 34, 18, 10, 4], [1620, 0, 20, 12, 4.6],
     [1700, -22, 18, 10, 4], [4500, 0, 16, 10, 3.6], [4800, 10, 16, 9, 3.4], [5150, -6, 18, 10, 4], [5400, 0, 18, 11, 4.2]],
 };
-ESC.group.visible = false; scene.add(ESC.group); ESC.group.add(ESC.sky);
+ESC.group.visible = false; scene.add(ESC.group); scene.add(ESC.sky); ESC.sky.visible = false;
 const pathX = (z) => 60 * Math.sin(z / 700) + 25 * Math.sin(z / 260 + 1) + 10 * Math.sin(z / 97);
 const pathDX = (z) => 60 / 700 * Math.cos(z / 700) + 25 / 260 * Math.cos(z / 260 + 1) + 10 / 97 * Math.cos(z / 97);
 function keyed(K, z) { // smooth interpolation through [z, value] keypoints
@@ -1888,7 +1994,7 @@ function escClamp(v, dt) {
   if (Math.abs(u) > lim) {
     const sg = Math.sign(u); v.pos.x = pathX(z) + sg * lim;
     const nx = -sg, nz = sg * pathDX(z); const L = Math.hypot(nx, nz); const vn = (v.vel.x * nx + v.vel.z * nz) / L;
-    if (vn < 0) { v.vel.x -= nx / L * vn * 1.3; v.vel.z -= nz / L * vn * 1.3; if (vn < -9 && v.alive) { v.damage(-vn * 0.6, null, null, null); sparks(v.root.position.clone().add(V3(0, 1, 0)), V3(nx, 0.6, nz), 8); if (v.isPlayer) { shake(0.25); rumble(0.5, 0.4, 140); } sfx.clang(); } }
+    if (vn < 0) { v.vel.x -= nx / L * vn * 1.3; v.vel.z -= nz / L * vn * 1.3; if (vn < -9 && v.alive) { v.damage(-vn * 0.6, null, null, null, 'ram'); sparks(v.root.position.clone().add(V3(0, 1, 0)), V3(nx, 0.6, nz), 8); if (v.isPlayer) { shake(0.25); rumble(0.5, 0.4, 140); } sfx.clang(); } }
   }
   if (z < ESC.V0 + 40) { v.pos.z = ESC.V0 + 40; v.vel.z = Math.max(0, v.vel.z); }
   if (z > ESC.V1 - 60) { v.pos.z = ESC.V1 - 60; v.vel.z = Math.min(0, v.vel.z); }
@@ -1967,7 +2073,7 @@ function buildEscapeRaw() {
     const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), new THREE.MeshBasicMaterial({ color: '#ffcf8a', toneMapped: false })); lamp.position.set(3.2, 2.7, 2.7);
     const door = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.2, 0.1), new THREE.MeshBasicMaterial({ color: '#ffb060', toneMapped: false })); door.position.set(1.2, 1.1, 2.52);
     for (const o of [w1, rf]) { o.castShadow = o.receiveShadow = true; } sh.add(w1, rf, lamp, door); ESC.group.add(sh); ESC.static.push({ x, z, r: 4 }); }
-  buildBridge(); buildSkyNight(); buildInterior(); buildTornados();
+  buildBridge(); if (!ESC.skyBuilt) { ESC.skyBuilt = true; buildSkyNight(); } buildInterior(); buildTornados();
   console.log('escape built', Math.round(performance.now() - t0), 'ms');
 }
 function buildBridge() {
@@ -2099,7 +2205,7 @@ function strike(at, dmgTarget) {
   ESC.flashT = 0.35; flash(at.clone().add(V3(0, 8, 0)), 2500, 0.3, '#c8d4ff');
   const d = player ? player.pos.distanceTo(at) : 100; setTimeout(() => sfx.thunder(clamp(1.2 - d / 400, 0.4, 1.2)), Math.min(2500, d / 340 * 1000));
   if (d < 40) { shake(0.4); rumble(0.6, 0.6, 200); }
-  if (dmgTarget && dmgTarget.alive) { dmgTarget.damage(70, at, V3(0, 1, 0), null); dmgTarget.air = true; dmgTarget.vy = 7; explosion(at, 0.6); }
+  if (dmgTarget && dmgTarget.alive) { dmgTarget.damage(70, at, V3(0, 1, 0), null, 'blast'); dmgTarget.air = true; dmgTarget.vy = 7; explosion(at, 0.6); }
   for (let k = 0; k < 20; k++) emit(PS_ADD, at.clone().add(V3(0, 0.5, 0)), V3(rnd(-10, 10), rnd(4, 14), rnd(-10, 10)), rnd(0.3, 0.8), 0.3, 0.1, COL.spark, 1, COL.fire2, 0.3, 18, 0.5);
 }
 function updateLightning(dt) {
@@ -2118,6 +2224,23 @@ function updateLightning(dt) {
 }
 // day / night switch
 const NIGHT_BG = new THREE.Color('#05070d');
+// time of day for the proving ground and garage: day, sunrise, sunset, night
+const TIMES = {
+  day: { el: 14, az: 215, tur: 7, ray: 1.8, mie: 0.007, sun: '#ffd6a4', si: 3.2, hs: '#bcd2e6', hg: '#8a5a36', hi: 0.55, fog: '#d0a47c', fn: 70, ff: 520, exp: 0.62, env: 0.55, dim: 1 },
+  sunrise: { el: 5, az: 100, tur: 6, ray: 3.4, mie: 0.01, sun: '#ffd8b0', si: 2.5, hs: '#9fb4e0', hg: '#6e5248', hi: 0.5, fog: '#c4a8a6', fn: 60, ff: 480, exp: 0.6, env: 0.45, dim: 0.9 },
+  sunset: { el: 3.5, az: 250, tur: 11, ray: 3.2, mie: 0.016, sun: '#ff9050', si: 2.7, hs: '#8f7fb5', hg: '#6e3a24', hi: 0.4, fog: '#c67a58', fn: 55, ff: 460, exp: 0.62, env: 0.42, dim: 0.8 },
+};
+let curTime = 'day';
+function applyTime(t) {
+  curTime = TIMES[t] || t === 'night' ? t : 'day';
+  if (curTime === 'night') { if (!ESC.skyBuilt) { ESC.skyBuilt = true; buildSkyNight(); } setNight(true); return; }
+  setNight(false);
+  const T = TIMES[curTime], dir = V3().setFromSphericalCoords(1, Math.PI / 2 - THREE.MathUtils.degToRad(T.el), THREE.MathUtils.degToRad(T.az));
+  su.turbidity.value = T.tur; su.rayleigh.value = T.ray; su.mieCoefficient.value = T.mie; su.sunPosition.value.copy(dir);
+  sun.color.set(T.sun); sun.intensity = T.si; hemi.color.set(T.hs); hemi.groundColor.set(T.hg); hemi.intensity = T.hi;
+  scene.fog.color.set(T.fog); scene.fog.near = T.fn; scene.fog.far = T.ff; renderer.toneMappingExposure = T.exp; scene.environmentIntensity = T.env;
+  PS_NORM.m.uniforms.uDim.value = T.dim; WORLD.lightDir = dir; makeEnv(dir, T.tur, T.ray, T.mie);
+}
 function setNight(on) {
   sky.visible = !on; scene.background = on ? NIGHT_BG.clone() : null;
   scene.fog.color.set(on ? '#0b0d14' : FOG); scene.fog.near = on ? 25 : 70; scene.fog.far = on ? 330 : 520;
@@ -2125,14 +2248,15 @@ function setNight(on) {
   hemi.color.set(on ? '#3a4a70' : '#bcd2e6'); hemi.groundColor.set(on ? '#1a120c' : '#8a5a36'); hemi.intensity = on ? 0.32 : 0.55;
   scene.environmentIntensity = on ? 0.12 : 0.55; renderer.toneMappingExposure = on ? 0.95 : 0.62;
   PS_NORM.m.uniforms.uDim.value = on ? 0.32 : 1;
-  ESC.group.visible = on; arenaGroup.visible = !on; headL.intensity = on ? 900 : 0;
+  ESC.sky.visible = on; headL.intensity = on ? 900 : 0;
   WORLD.lightDir = on ? (ESC.moonDir || sunDir) : null;
+  if (on && ENV.tex) makeEnv(V3(0, -0.2, 1).normalize(), 2, 0.3, 0.002);
 }
 function enterEscapeWorld(seed) { buildEscape(); withSeed(seed == null ? (Math.random() * 1e9) | 0 : seed, () => enterEscapeWorldRaw()); }
 function enterEscapeWorldRaw() {
   buildEscape();
   if (WORLD.mode !== 'escape') { ESC.arenaStatic = STATIC.splice(0); STATIC.push(...ESC.static); }
-  WORLD.mode = 'escape'; WORLD.h = escH; WORLD.clamp = escClamp; setNight(true);
+  WORLD.mode = 'escape'; WORLD.h = escH; WORLD.clamp = escClamp; setNight(true); ESC.group.visible = true; arenaGroup.visible = false;
   // props along the road
   for (const p of props) p.obj.removeFromParent(); props.length = 0;
   for (let i = 0; i < 70; i++) {
@@ -2142,7 +2266,7 @@ function enterEscapeWorldRaw() {
 }
 function leaveEscapeWorld() {
   if (WORLD.mode !== 'escape') return;
-  WORLD.mode = 'arena'; WORLD.clamp = null; setNight(false); sfx.wind(0);
+  WORLD.mode = 'arena'; WORLD.clamp = null; ESC.group.visible = false; arenaGroup.visible = true; applyTime(load.time); sfx.wind(0);
   STATIC.length = 0; STATIC.push(...(ESC.arenaStatic || []));
   for (const b of ESC.bolts) b.g.removeFromParent(); ESC.bolts.length = 0;
   placeProps();
@@ -2173,7 +2297,7 @@ function escSpawn(n, from) {
     const z = from === 'behind' ? pz - rnd(70, 120) : pz + rnd(150, 210); if (gorgeAmt(z) > 0) continue;
     const hw = escHW(z), x = pathX(z) + rnd(-0.6, 0.6) * hw;
     const r = Math.random(); const type = pz > 3000 && i === 0 ? 'juggernaut' : r < 0.2 && pz > 800 ? 'widowmaker' : r < 0.6 ? 'raider' : 'scrapper';
-    const lo = { type, weapon: type === 'juggernaut' ? 'rockets' : type === 'raider' && Math.random() < 0.3 ? 'flamer' : 'cannon', ram: Math.random() < 0.6 ? 'spike' : 'saw', armor: Math.random() < 0.5 ? 'heavy' : 'scrap' };
+    const lo = { type, weapon: type === 'juggernaut' ? 'rockets' : type === 'raider' && Math.random() < 0.3 ? 'flamer' : 'cannon', ram: Math.random() < 0.6 ? 'spike' : 'saw', armor: rndArmor() };
     const e = new Vehicle(type, lo, false, ENEMY_PAINT[i % 3]);
     e.place(x, z, from === 'behind' ? roadH(z) : roadH(z) + Math.PI);
     if (from === 'behind') { const f = e.fwd; e.vel.set(f.x * 24, 0, f.z * 24); }
@@ -2533,7 +2657,7 @@ function guestFx(v, dt, fl) {
   const fast = Math.abs(v.speed) > 6;
   if (fast && Math.random() < 0.6) for (const s of [-1, 1]) { const p = v.root.localToWorld(tmpV2.set(s * v.box.hx * 0.8, 0.25, -v.box.hz * 0.55)).clone(); emit(PS_NORM, p, V3(rnd(-1, 1), rnd(0.8, 2.2), rnd(-1, 1)), rnd(1.0, 2.0), rnd(0.8, 1.3), rnd(3.5, 6), COL.dust, 0.32, COL.dust2, 0, -0.3, 1.2); }
   if (v.drifting) for (const s of [-1, 1]) { const p = v.root.localToWorld(tmpV2.set(s * v.box.hx * 0.85, 0.35, -v.box.hz * 0.6)).clone(); emit(PS_NORM, p, V3(rnd(-1.5, 1.5), rnd(1, 2.5), rnd(-1.5, 1.5)), rnd(1.4, 2.4), 1.2, rnd(6, 9), COL.dust2, 0.42, COL.smoke2, 0, -0.4, 1.4); }
-  if (v.nitOn) { const p = v.root.localToWorld(tmpV2.set(0, 0.85, -v.box.hz * 0.98)).clone(); const back = v.fwd.clone().multiplyScalar(-1); for (let i = 0; i < 3; i++) emit(PS_ADD, p, back.clone().multiplyScalar(rnd(9, 15)).add(V3(rnd(-0.6, 0.6), rnd(0.2, 1.2), rnd(-0.6, 0.6))), rnd(0.18, 0.32), rnd(0.9, 1.3), rnd(0.2, 0.5), i ? COL.fire : COL.flameCore, 1, COL.fire2, 0, -2); }
+  if (v.nitOn) nitroFlames(v, null);
   if ((fl & 4) && v.wk === 'flamer') { const p = v.muzzlePos(), d = v.gunDir(); for (let k = 0; k < 5; k++) emit(PS_ADD, p.clone().addScaledVector(d, rnd(0, 0.5)), d.clone().multiplyScalar(rnd(24, 32)).add(V3(rnd(-2.2, 2.2), rnd(-1, 2), rnd(-2.2, 2.2))), rnd(0.42, 0.62), rnd(0.3, 0.6), rnd(2.6, 4.2), k % 3 ? COL.fire : COL.flameCore, 1, COL.fire2, 0, -5, 1.8); }
   for (const b of v.blades) b.rotation.y += 30 * dt;
   if (v.isPlayer && Math.random() < 0.02) sfx.engine(clamp(Math.abs(v.speed) / v.maxSpeed, 0, 1.3), true);
@@ -2687,7 +2811,7 @@ window.__sk = { vehicles, game, debris, keys, get player() { return player; },
   } catch (e) {
     LMSG.textContent = 'Could not load the rigs. Reload the page to try again.'; console.error(e); return;
   }
-  placeWrecks(); placeProps();
+  placeWrecks(); placeProps(); applyTime(load.time);
   LMSG.textContent = 'Press A or Enter';
   const sb = $('startbtn'); sb.hidden = false; sb.focus();
   game.state = 'title';
